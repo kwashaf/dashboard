@@ -1,8 +1,8 @@
-
 streamlit
 pandas
 numpy
+requests
 matplotlib
 mplsoccer
-requests
+pyarrow
 openpyxl
