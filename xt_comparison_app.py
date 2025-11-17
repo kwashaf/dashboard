@@ -358,9 +358,12 @@ def main():
             position=position,
             playername=playername,
         )
-
+    
         if fig is not None:
-            st.pyplot(fig)
+            # Center the pitch and scale it nicely inside the page
+            left, center, right = st.columns([1, 2, 1])
+            with center:
+                st.pyplot(fig, use_container_width=True)
 
 
 if __name__ == "__main__":
