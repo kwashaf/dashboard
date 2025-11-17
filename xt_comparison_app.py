@@ -218,7 +218,7 @@ def plot_xt_comparison_for_player(
         pitch_color=PitchColor,
         line_color=PitchLineColor,
     )
-    fig, ax = pitch.draw(figsize=(6, 10))  # same aspect as your Python version
+    fig, ax = pitch.draw(figsize=(4.5, 7.5))  # same aspect as your Python version
     fig.set_facecolor(BackgroundColor)
 
     # Draw rectangles per bin
