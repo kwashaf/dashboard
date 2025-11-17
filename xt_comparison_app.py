@@ -7,7 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from mplsoccer import VerticalPitch
+from io import BytesIO
 
+def fig_to_png_bytes(fig):
+    buf = BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    buf.seek(0)
+    return buf
 # -----------------------------------------------------------------------------
 # PAGE CONFIG
 # -----------------------------------------------------------------------------
@@ -363,7 +369,8 @@ def main():
             # Center the pitch and scale it nicely inside the page
             left, center, right = st.columns([1, 2, 1])
             with center:
-                st.pyplot(fig, use_container_width=True)
+                img_bytes = fig_to_png_bytes(fig)
+                st.image(img_bytes, width=450)   # ⬅️ Try 400–500 for your display
 
 
 if __name__ == "__main__":
