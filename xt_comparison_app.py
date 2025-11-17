@@ -1,4 +1,3 @@
-
 import io
 import requests
 
@@ -14,9 +13,9 @@ from mplsoccer import VerticalPitch
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="xT Comparison Pitch Map", layout="wide")
 
-# Google Drive CSV (ENG1_2526.csv)
-MATCH_CSV_URL = (
-    "https://drive.google.com/uc?export=download&confirm=t&id=1ZQ9672gGC4P4NFjVJYhrVo9N_-wCA9u8"
+# GitHub Parquet (ENG1_2526.parquet)
+MATCH_PARQUET_URL = (
+    "https://github.com/WTAnalysis/dashboard/raw/main/ENG1_2526.parquet"
 )
 
 # GitHub Excel (ENG1_2526_playerstats_by_position_group.xlsx)
@@ -35,47 +34,35 @@ PitchLineColor = "Black"
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_match_data() -> pd.DataFrame:
-    """Load ENG1_2526.csv from Google Drive in a robust way."""
-    resp = requests.get(MATCH_CSV_URL)
+    """Load ENG1_2526.parquet from GitHub."""
     try:
+        resp = requests.get(MATCH_PARQUET_URL)
         resp.raise_for_status()
     except Exception as e:
-        st.error(f"Error fetching match CSV from Google Drive: {e}")
-        return pd.DataFrame()
-
-    # Check if Google Drive is giving us HTML (e.g. a warning page) instead of the CSV
-    content_type = resp.headers.get("Content-Type", "")
-    text_sample = resp.text[:200].lower()
-
-    if "text/html" in content_type or "<html" in text_sample:
-        st.error(
-            "The Google Drive link appears to be returning an HTML page "
-            "(e.g. a warning or quota page) instead of the raw CSV.\n\n"
-            "Please double-check that the file is shared publicly and that "
-            "the URL is a direct download link."
-        )
+        st.error(f"Error fetching match Parquet from GitHub: {e}")
         return pd.DataFrame()
 
     try:
-        # Let pandas handle the bytes directly; be tolerant of bad lines
-        df = pd.read_csv(
-            io.BytesIO(resp.content),
-            engine="python",          # more tolerant parser
-            on_bad_lines="skip"       # skip malformed rows instead of failing
-            # encoding="utf-8"       # you can uncomment + adjust if needed
-        )
+        # Read Parquet from bytes
+        df = pd.read_parquet(io.BytesIO(resp.content))
     except Exception as e:
-        st.error(f"Failed to parse match CSV: {e}")
+        st.error(f"Failed to parse match Parquet file: {e}")
         return pd.DataFrame()
 
     return df
+
+
 @st.cache_data
 def load_minute_log() -> pd.DataFrame:
     """Load ENG1_2526_playerstats_by_position_group.xlsx from GitHub."""
-    resp = requests.get(MINUTE_LOG_XLSX_URL)
-    resp.raise_for_status()
-    xlsx_bytes = io.BytesIO(resp.content)
-    df = pd.read_excel(xlsx_bytes, usecols=["player_name", "minutes_played"])
+    try:
+        resp = requests.get(MINUTE_LOG_XLSX_URL)
+        resp.raise_for_status()
+        xlsx_bytes = io.BytesIO(resp.content)
+        df = pd.read_excel(xlsx_bytes, usecols=["player_name", "minutes_played"])
+    except Exception as e:
+        st.error(f"Error loading minute log Excel from GitHub: {e}")
+        return pd.DataFrame()
     return df
 
 
@@ -242,16 +229,45 @@ def main():
         matchdata = load_match_data()
         minute_log = load_minute_log()
 
+    if matchdata.empty or minute_log.empty:
+        st.warning("Data could not be loaded. Please check the data sources.")
+        return
+
     st.sidebar.header("User Input")
 
-    position = st.sidebar.text_input(
-        "Enter position (e.g. LB, RW, CM)",
-        value="LB",
+    # --- Position selector based on data ---
+    positions = (
+        matchdata["playing_position"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+    positions = sorted(positions)
+
+    default_position = "LB" if "LB" in positions else positions[0] if positions else ""
+    position = st.sidebar.selectbox(
+        "Select position",
+        positions,
+        index=positions.index(default_position) if default_position in positions else 0,
     )
 
-    playername = st.sidebar.text_input(
-        "Enter player name (exact as in data)",
-        value="N. Williams",
+    # --- Player selector based on selected position ---
+    positiondata = matchdata.loc[matchdata["playing_position"] == position]
+    players = (
+        positiondata["playerName"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+    players = sorted(players)
+
+    default_player = "N. Williams" if "N. Williams" in players else players[0] if players else ""
+    playername = st.sidebar.selectbox(
+        "Select player",
+        players,
+        index=players.index(default_player) if default_player in players else 0,
     )
 
     if st.sidebar.button("Generate Pitch Map"):
