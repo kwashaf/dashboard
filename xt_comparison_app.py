@@ -80,24 +80,6 @@ def plot_xt_comparison_for_player(
     # Filter by user-defined position
     positiondata = matchdata.loc[matchdata["playing_position"] == position].copy()
 
-    # 🔍 DEBUG: show a subsection of positiondata
-    if not positiondata.empty:
-        st.markdown("#### Debug: sample of filtered position data (first 50 rows)")
-        debug_cols = [
-            col for col in [
-                "playerName",
-                "playing_position",
-                "typeId",
-                "x",
-                "y",
-                "xT_value"
-            ]
-            if col in positiondata.columns
-        ]
-        st.dataframe(positiondata[debug_cols].head(50))
-    else:
-        st.warning(f"No rows in positiondata for position: {position}")
-
     if positiondata.empty:
         st.error(f"No data found for position '{position}'.")
         return None
@@ -176,7 +158,7 @@ def plot_xt_comparison_for_player(
 
     # Ensure we have rows for all bins 1..70
     all_bins = pd.DataFrame({"pitch_bin": range(1, 71)})  # 10 x 7 grid = 70
-    playertest = pd.merge(all_bins, playertest, on("pitch_bin"), how="left")
+    playertest = pd.merge(all_bins, playertest, on="pitch_bin", how="left")
 
     # Fill missing playerName and xT_value_compared
     first_name = playername
@@ -234,3 +216,71 @@ def plot_xt_comparison_for_player(
     )
 
     return fig
+
+
+# -----------------------------------------------------------------------------
+# STREAMLIT APP
+# -----------------------------------------------------------------------------
+def main():
+    st.title("xT Comparison Pitch Map")
+    st.subheader("ENG1 25/26 Season")
+
+    with st.spinner("Loading match and minute data..."):
+        matchdata = load_match_data()
+        minute_log = load_minute_log()
+
+    if matchdata.empty or minute_log.empty:
+        st.warning("Data could not be loaded. Please check the data sources.")
+        return
+
+    st.sidebar.header("User Input")
+
+    # --- Position selector based on data ---
+    positions = (
+        matchdata["playing_position"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+    positions = sorted(positions)
+
+    default_position = "LB" if "LB" in positions else positions[0] if positions else ""
+    position = st.sidebar.selectbox(
+        "Select position",
+        positions,
+        index=positions.index(default_position) if default_position in positions else 0,
+    )
+
+    # --- Player selector based on selected position ---
+    positiondata = matchdata.loc[matchdata["playing_position"] == position]
+    players = (
+        positiondata["playerName"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+    players = sorted(players)
+
+    default_player = "N. Williams" if "N. Williams" in players else players[0] if players else ""
+    playername = st.sidebar.selectbox(
+        "Select player",
+        players,
+        index=players.index(default_player) if default_player in players else 0,
+    )
+
+    if st.sidebar.button("Generate Pitch Map"):
+        fig = plot_xt_comparison_for_player(
+            matchdata=matchdata,
+            minute_log=minute_log,
+            position=position,
+            playername=playername,
+        )
+
+        if fig is not None:
+            st.pyplot(fig)
+
+
+if __name__ == "__main__":
+    main()
