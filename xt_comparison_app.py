@@ -16,7 +16,7 @@ st.set_page_config(page_title="xT Comparison Pitch Map", layout="wide")
 
 # Google Drive CSV (ENG1_2526.csv)
 MATCH_CSV_URL = (
-    "https://drive.google.com/uc?export=download&id=1ZQ9672gGC4P4NFjVJYhrVo9N_-wCA9u8"
+    "https://drive.google.com/file/d/1ZQ9672gGC4P4NFjVJYhrVo9N_-wCA9u8/view?usp=drive_link"
 )
 
 # GitHub Excel (ENG1_2526_playerstats_by_position_group.xlsx)
