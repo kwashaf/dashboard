@@ -9,10 +9,13 @@ import matplotlib.colors as mcolors
 from mplsoccer import VerticalPitch
 
 # -----------------------------------------------------------------------------
-# CONFIG
+# PAGE CONFIG
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="xT Comparison Pitch Map", layout="wide")
 
+# -----------------------------------------------------------------------------
+# CONSTANTS / CONFIG
+# -----------------------------------------------------------------------------
 # GitHub Parquet (ENG1_2526.parquet)
 MATCH_PARQUET_URL = (
     "https://github.com/WTAnalysis/dashboard/raw/main/ENG1_2526.parquet"
@@ -43,7 +46,6 @@ def load_match_data() -> pd.DataFrame:
         return pd.DataFrame()
 
     try:
-        # Read Parquet from bytes
         df = pd.read_parquet(io.BytesIO(resp.content))
     except Exception as e:
         st.error(f"Failed to parse match Parquet file: {e}")
@@ -73,35 +75,38 @@ def plot_xt_comparison_for_player(
     matchdata: pd.DataFrame,
     minute_log: pd.DataFrame,
     position: str,
-    playername: str
+    playername: str,
 ):
     """Create the xT comparison pitch map for a given player and position."""
 
+    # -------------------------------------------------------------------------
     # Filter by user-defined position
+    # -------------------------------------------------------------------------
     positiondata = matchdata.loc[matchdata["playing_position"] == position].copy()
-
-    # 🔍 DEBUG: show a subsection of positiondata
-    if not positiondata.empty:
-        st.markdown("#### Debug: sample of filtered position data (first 50 rows)")
-        debug_cols = [
-            col for col in [
-                "playerName",
-                "playing_position",
-                "typeId",
-                "x",
-                "y",
-                "xT_value"
-            ]
-            if col in positiondata.columns
-        ]
-        st.dataframe(positiondata[debug_cols].head(50))
-    else:
-        st.warning(f"No rows in positiondata for position: {position}")
 
     if positiondata.empty:
         st.error(f"No data found for position '{position}'.")
         return None
 
+    # --- DEBUG: show a subsection of the position data ---
+    with st.expander("Debug: sample of filtered position data", expanded=False):
+        debug_cols = [
+            col
+            for col in [
+                "playerName",
+                "playing_position",
+                "typeId",
+                "x",
+                "y",
+                "xT_value",
+            ]
+            if col in positiondata.columns
+        ]
+        st.dataframe(positiondata[debug_cols].head(50))
+
+    # -------------------------------------------------------------------------
+    # Bin the pitch and aggregate xT
+    # -------------------------------------------------------------------------
     # Ensure coordinates are within pitch bounds
     positiondata["x"] = positiondata["x"].clip(lower=0, upper=100)
     positiondata["y"] = positiondata["y"].clip(lower=0, upper=100)
@@ -126,16 +131,18 @@ def plot_xt_comparison_for_player(
 
     # Remove event types not needed
     drop_types = ["Player off", "Player on", "Corner Awarded", "Card"]
-    positiondata = positiondata.loc[~positiondata["typeId"].isin(drop_types)]
+    if "typeId" in positiondata.columns:
+        positiondata = positiondata.loc[~positiondata["typeId"].isin(drop_types)]
 
     # Sum xT per player per bin
     xT_summary = (
-        positiondata
-        .groupby(["playerName", "pitch_bin"], as_index=False)["xT_value"]
+        positiondata.groupby(["playerName", "pitch_bin"], as_index=False)["xT_value"]
         .sum()
     )
 
-    # Merge with minute log
+    # -------------------------------------------------------------------------
+    # Merge with minute log and compute per-90 + comparison vs average
+    # -------------------------------------------------------------------------
     xT_merged = pd.merge(
         xT_summary,
         minute_log,
@@ -143,15 +150,19 @@ def plot_xt_comparison_for_player(
         left_on="playerName",
         right_on="player_name",
     )
-    xT_merged["xT_value_per_90"] = (
-        xT_merged["xT_value"] / xT_merged["minutes_played"]
-    ) * 90
-    xT_merged = xT_merged.drop(columns="player_name")
 
-    # Average xT per 90 by bin (across all players)
+    # Safe per-90 calculation
+    xT_merged["xT_value_per_90"] = np.where(
+        xT_merged["minutes_played"] > 0,
+        (xT_merged["xT_value"] / xT_merged["minutes_played"]) * 90,
+        np.nan,
+    )
+    xT_merged = xT_merged.drop(columns="player_name")
+    xT_merged = xT_merged.dropna(subset=["xT_value_per_90"])
+
+    # Average xT per 90 by bin (across all players in that position)
     avg_bin_xt = (
-        xT_merged
-        .groupby("pitch_bin", as_index=False)["xT_value_per_90"]
+        xT_merged.groupby("pitch_bin", as_index=False)["xT_value_per_90"]
         .mean()
         .rename(columns={"xT_value_per_90": "avg_xT_value_per_90"})
     )
@@ -163,11 +174,12 @@ def plot_xt_comparison_for_player(
         how="left",
     )
     xT_compared["xT_value_compared"] = (
-        xT_compared["xT_value_per_90"]
-        - xT_compared["avg_xT_value_per_90"]
+        xT_compared["xT_value_per_90"] - xT_compared["avg_xT_value_per_90"]
     )
 
+    # -------------------------------------------------------------------------
     # Player-specific data
+    # -------------------------------------------------------------------------
     playertest = xT_compared.loc[xT_compared["playerName"] == playername].copy()
 
     if playertest.empty:
@@ -176,7 +188,6 @@ def plot_xt_comparison_for_player(
 
     # Ensure we have rows for all bins 1..70
     all_bins = pd.DataFrame({"pitch_bin": range(1, 71)})  # 10 x 7 grid = 70
-    # ⬇️ FIXED LINE HERE
     playertest = pd.merge(all_bins, playertest, on="pitch_bin", how="left")
 
     # Fill missing playerName and xT_value_compared
@@ -186,6 +197,14 @@ def plot_xt_comparison_for_player(
 
     playertest["playerName"] = playertest["playerName"].fillna(first_name)
     playertest["xT_value_compared"] = playertest["xT_value_compared"].fillna(0)
+
+    # --- DEBUG: distribution of xT_value_compared for this player ---
+    with st.expander("Debug: xT_value_compared distribution", expanded=False):
+        st.write(playertest["xT_value_compared"].describe())
+
+    # -------------------------------------------------------------------------
+    # Drawing
+    # -------------------------------------------------------------------------
     # Colour map: red (worse) -> white (average) -> green (better)
     colors = ["#d7191c", "#ffffff", "#1a9641"]
     cmap = mcolors.LinearSegmentedColormap.from_list(
@@ -199,7 +218,7 @@ def plot_xt_comparison_for_player(
         pitch_color=PitchColor,
         line_color=PitchLineColor,
     )
-    fig, ax = pitch.draw(figsize=(12, 8))
+    fig, ax = pitch.draw(figsize=(6, 10))  # same aspect as your Python version
     fig.set_facecolor(BackgroundColor)
 
     # Draw rectangles per bin
@@ -228,7 +247,7 @@ def plot_xt_comparison_for_player(
 
     ax.set_title(
         f"{first_name} | Impact by Pitch Area",
-        fontsize=12,
+        fontsize=14,
         pad=10,
         color="white",
     )
@@ -243,6 +262,9 @@ def main():
     st.title("xT Comparison Pitch Map")
     st.subheader("ENG1 25/26 Season")
 
+    # -------------------------------------------------------------------------
+    # Load data
+    # -------------------------------------------------------------------------
     with st.spinner("Loading match and minute data..."):
         matchdata = load_match_data()
         minute_log = load_minute_log()
@@ -251,9 +273,39 @@ def main():
         st.warning("Data could not be loaded. Please check the data sources.")
         return
 
+    # -------------------------------------------------------------------------
+    # Normalise dtypes so Streamlit & local Python behave the same
+    # -------------------------------------------------------------------------
+    # Force numeric on key columns
+    for col in ["x", "y", "xT_value"]:
+        if col in matchdata.columns:
+            matchdata[col] = pd.to_numeric(matchdata[col], errors="coerce")
+
+    if "minutes_played" in minute_log.columns:
+        minute_log["minutes_played"] = pd.to_numeric(
+            minute_log["minutes_played"], errors="coerce"
+        )
+
+    # Aggregate minutes per player in case of duplicates
+    if "player_name" in minute_log.columns:
+        minute_log = (
+            minute_log.groupby("player_name", as_index=False)["minutes_played"]
+            .sum()
+        )
+
+    # Optional quick debug ranges in sidebar
+    with st.sidebar.expander("Debug: global ranges", expanded=False):
+        if "xT_value" in matchdata.columns:
+            st.write("xT_value:", matchdata["xT_value"].describe())
+        if "minutes_played" in minute_log.columns:
+            st.write("minutes_played:", minute_log["minutes_played"].describe())
+
+    # -------------------------------------------------------------------------
+    # Sidebar controls
+    # -------------------------------------------------------------------------
     st.sidebar.header("User Input")
 
-    # --- Position selector based on data ---
+    # Position selector based on data
     positions = (
         matchdata["playing_position"]
         .dropna()
@@ -263,14 +315,18 @@ def main():
     )
     positions = sorted(positions)
 
-    default_position = "LB" if "LB" in positions else positions[0] if positions else ""
+    if not positions:
+        st.error("No positions found in match data.")
+        return
+
+    default_position = "LB" if "LB" in positions else positions[0]
     position = st.sidebar.selectbox(
         "Select position",
         positions,
-        index=positions.index(default_position) if default_position in positions else 0,
+        index=positions.index(default_position),
     )
 
-    # --- Player selector based on selected position ---
+    # Player selector based on that position
     positiondata = matchdata.loc[matchdata["playing_position"] == position]
     players = (
         positiondata["playerName"]
@@ -281,13 +337,20 @@ def main():
     )
     players = sorted(players)
 
-    default_player = "N. Williams" if "N. Williams" in players else players[0] if players else ""
+    if not players:
+        st.error(f"No players found for position {position}.")
+        return
+
+    default_player = "N. Williams" if "N. Williams" in players else players[0]
     playername = st.sidebar.selectbox(
         "Select player",
         players,
-        index=players.index(default_player) if default_player in players else 0,
+        index=players.index(default_player),
     )
 
+    # -------------------------------------------------------------------------
+    # Generate plot
+    # -------------------------------------------------------------------------
     if st.sidebar.button("Generate Pitch Map"):
         fig = plot_xt_comparison_for_player(
             matchdata=matchdata,
