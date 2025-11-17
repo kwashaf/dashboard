@@ -89,7 +89,8 @@ def plot_xt_comparison_for_player(
     # Filter by user-defined position
     # -------------------------------------------------------------------------
     positiondata = matchdata.loc[matchdata["playing_position"] == position].copy()
-
+    if "throwin" in positiondata.columns:
+        positiondata = positiondata.loc[positiondata["throwin"] != 1]
     if positiondata.empty:
         st.error(f"No data found for position '{position}'.")
         return None
