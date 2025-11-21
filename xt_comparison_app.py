@@ -180,20 +180,20 @@ def plot_xt_comparison_for_player(
         st.error(f"No data found for position '{position}' after filtering.")
         return None
 
-    with st.expander("Debug: sample of filtered position data", expanded=False):
-        debug_cols = [
-            col
-            for col in [
-                "playerName",
-                "playing_position",
-                "typeId",
-                "x",
-                "y",
-                "xT_value",
-                "throwin",
-            ]
-            if col in positiondata.columns
-        ]
+  #  with st.expander("Debug: sample of filtered position data", expanded=False):
+  #      debug_cols = [
+  #          col
+  #          for col in [
+  #              "playerName",
+  #              "playing_position",
+  #              "typeId",
+  #              "x",
+  #              "y",
+  #              "xT_value",
+  #              "throwin",
+  #          ]
+  #          if col in positiondata.columns
+  #      ]
   #      st.dataframe(positiondata[debug_cols].head(50))
 
     positiondata["x"] = positiondata["x"].clip(lower=0, upper=100)
@@ -297,17 +297,17 @@ def plot_xt_comparison_for_player(
 
     playertest["playerName"] = playertest["playerName"].fillna(first_name)
     playertest["xT_value_compared"] = playertest["xT_value_compared"].fillna(0)
-    with st.expander("Debug: Full player bin table (all 70 bins)", expanded=True):
-        debug_df = playertest[[
-            "pitch_bin",
-            "playerName",
-            "xT_value_per_90",
-            "avg_xT_value_per_90",
-            "xT_value_compared"
-        ]].copy().sort_values("pitch_bin")
+    #with st.expander("Debug: Full player bin table (all 70 bins)", expanded=True):
+    #    debug_df = playertest[[
+    #        "pitch_bin",
+    #        "playerName",
+    #        "xT_value_per_90",
+    #        "avg_xT_value_per_90",
+    #        "xT_value_compared"
+    #    ]].copy().sort_values("pitch_bin")
     #    st.dataframe(debug_df, use_container_width=True)
-    with st.expander("Debug: xT_value_compared distribution", expanded=False):
-        st.write(playertest["xT_value_compared"].describe())
+    #with st.expander("Debug: xT_value_compared distribution", expanded=False):
+    #    st.write(playertest["xT_value_compared"].describe())
 
     colors = ["#d7191c", "#ffffff", "#1a9641"]
     cmap = mcolors.LinearSegmentedColormap.from_list(
