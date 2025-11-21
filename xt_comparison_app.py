@@ -39,6 +39,7 @@ COMP_MAP = {
     "Bundesliga":     "GER",
     "Ligue 1":        "FRA",
     "Serie A":        "ITA",
+    "League of Ireland":    "IRE",
 }
 # -----------------------------------------------------------------------------
 # HELPERS
