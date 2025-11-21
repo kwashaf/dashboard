@@ -32,13 +32,11 @@ PitchLineColor = "Black"
 # -----------------------------------------------------------------------------
 def build_raw_url(filename: str) -> str:
     """Build raw GitHub URL for a given file in the repo."""
-    # Normalise DATA_DIR to '' or 'dir/'
     prefix = "" if DATA_DIR == "" else (DATA_DIR.rstrip("/") + "/")
     return f"https://github.com/{REPO_OWNER}/{REPO_NAME}/raw/{BRANCH}/{prefix}{filename}"
 
 
 def fig_to_png_bytes(fig):
-    """Convert a Matplotlib figure to PNG bytes for stable sizing in Streamlit."""
     buf = BytesIO()
     fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
     buf.seek(0)
@@ -49,21 +47,17 @@ def fig_to_png_bytes(fig):
 # DATA LOADERS (NO API CALLS)
 # -----------------------------------------------------------------------------
 
-# Helper: fetch a raw file safely
 def fetch_raw_file(url: str) -> bytes:
     resp = requests.get(url)
     resp.raise_for_status()
     return resp.content
 
 
-# 1) Provide a simple index list manually OR load it from a text file in the repo.
-#    Here we expect you have a file called "file_index.txt" in your repo root.
-#    It should contain one filename per line.
 INDEX_FILE = "file_index.txt"
+
 
 @st.cache_data
 def load_index_list():
-    """Load file index listing from raw GitHub (not GitHub API)."""
     url = build_raw_url(INDEX_FILE)
     try:
         content = fetch_raw_file(url).decode("utf-8")
@@ -72,6 +66,10 @@ def load_index_list():
         st.error(f"Error loading file index: {e}")
         return []
 
+
+# -------------------- FIX APPLIED HERE --------------------
+# ❌ Removed f.lower().endswith — filenames must preserve case
+# -----------------------------------------------------------
 
 @st.cache_data
 def list_parquet_files():
@@ -84,7 +82,7 @@ def list_excel_files():
     files = load_index_list()
     return sorted([
         f for f in files
-        if f.endswith(".xlsx") or f.endswith(".xls")
+        if (f.endswith(".xlsx") or f.endswith(".xls"))
         and "playerstats_by_position_group" in f.lower()
     ])
 
@@ -121,14 +119,9 @@ def plot_xt_comparison_for_player(
     position: str,
     playername: str,
 ):
-    """Create the xT comparison pitch map for a given player and position."""
 
-    # -------------------------------------------------------------------------
-    # Filter by user-defined position
-    # -------------------------------------------------------------------------
     positiondata = matchdata.loc[matchdata["playing_position"] == position].copy()
 
-    # Drop throw-ins if column exists
     if "throwin" in positiondata.columns:
         positiondata = positiondata.loc[positiondata["throwin"] != 1]
 
@@ -136,7 +129,6 @@ def plot_xt_comparison_for_player(
         st.error(f"No data found for position '{position}' after filtering.")
         return None
 
-    # --- DEBUG: show a subsection of the position data ---
     with st.expander("Debug: sample of filtered position data", expanded=False):
         debug_cols = [
             col
@@ -153,14 +145,9 @@ def plot_xt_comparison_for_player(
         ]
         st.dataframe(positiondata[debug_cols].head(50))
 
-    # -------------------------------------------------------------------------
-    # Bin the pitch and aggregate xT
-    # -------------------------------------------------------------------------
-    # Ensure coordinates are within pitch bounds
     positiondata["x"] = positiondata["x"].clip(lower=0, upper=100)
     positiondata["y"] = positiondata["y"].clip(lower=0, upper=100)
 
-    # Bin the pitch into a 10 x 7 grid
     x_bins = 10
     y_bins = 7
 
@@ -173,25 +160,19 @@ def plot_xt_comparison_for_player(
     x_bin = np.clip(x_bin, 1, x_bins)
     y_bin = np.clip(y_bin, 1, y_bins)
 
-    # Flip y for vertical pitch orientation
     y_bin = (y_bins + 1) - y_bin
 
     positiondata["pitch_bin"] = (x_bin - 1) * y_bins + y_bin
 
-    # Remove event types not needed
     drop_types = ["Player off", "Player on", "Corner Awarded", "Card"]
     if "typeId" in positiondata.columns:
         positiondata = positiondata.loc[~positiondata["typeId"].isin(drop_types)]
 
-    # Sum xT per player per bin
     xT_summary = (
         positiondata.groupby(["playerName", "pitch_bin"], as_index=False)["xT_value"]
         .sum()
     )
 
-    # -------------------------------------------------------------------------
-    # Merge with minute log and compute per-90 + comparison vs average
-    # -------------------------------------------------------------------------
     xT_merged = pd.merge(
         xT_summary,
         minute_log,
@@ -200,7 +181,6 @@ def plot_xt_comparison_for_player(
         right_on="player_name",
     )
 
-    # Safe per-90 calculation
     xT_merged["xT_value_per_90"] = np.where(
         xT_merged["minutes_played"] > 0,
         (xT_merged["xT_value"] / xT_merged["minutes_played"]) * 90,
@@ -209,7 +189,6 @@ def plot_xt_comparison_for_player(
     xT_merged = xT_merged.drop(columns="player_name")
     xT_merged = xT_merged.dropna(subset=["xT_value_per_90"])
 
-    # Average xT per 90 by bin (across all players in that position)
     avg_bin_xt = (
         xT_merged.groupby("pitch_bin", as_index=False)["xT_value_per_90"]
         .mean()
@@ -226,20 +205,15 @@ def plot_xt_comparison_for_player(
         xT_compared["xT_value_per_90"] - xT_compared["avg_xT_value_per_90"]
     )
 
-    # -------------------------------------------------------------------------
-    # Player-specific data
-    # -------------------------------------------------------------------------
     playertest = xT_compared.loc[xT_compared["playerName"] == playername].copy()
 
     if playertest.empty:
         st.error(f"No data found for player '{playername}' at this position.")
         return None
 
-    # Ensure we have rows for all bins 1..70
-    all_bins = pd.DataFrame({"pitch_bin": range(1, 71)})  # 10 x 7 grid = 70
+    all_bins = pd.DataFrame({"pitch_bin": range(1, 71)})
     playertest = pd.merge(all_bins, playertest, on="pitch_bin", how="left")
 
-    # Fill missing playerName and xT_value_compared
     first_name = playername
     if playertest["playerName"].notna().any():
         first_name = playertest["playerName"].dropna().unique()[0]
@@ -247,38 +221,30 @@ def plot_xt_comparison_for_player(
     playertest["playerName"] = playertest["playerName"].fillna(first_name)
     playertest["xT_value_compared"] = playertest["xT_value_compared"].fillna(0)
 
-    # --- DEBUG: distribution of xT_value_compared for this player ---
     with st.expander("Debug: xT_value_compared distribution", expanded=False):
         st.write(playertest["xT_value_compared"].describe())
 
-    # -------------------------------------------------------------------------
-    # Drawing
-    # -------------------------------------------------------------------------
-    # Colour map: red (worse) -> white (average) -> green (better)
     colors = ["#d7191c", "#ffffff", "#1a9641"]
     cmap = mcolors.LinearSegmentedColormap.from_list(
         "custom_red_white_green", colors, N=256
     )
     norm = mcolors.TwoSlopeNorm(vmin=-0.05, vcenter=0, vmax=0.05)
 
-    # Draw vertical pitch
     pitch = VerticalPitch(
         pitch_type="opta",
         pitch_color=PitchColor,
         line_color=PitchLineColor,
     )
-    fig, ax = pitch.draw(figsize=(3.8, 6))  # compact but tall
-
+    fig, ax = pitch.draw(figsize=(3.8, 6))
     fig.set_facecolor(BackgroundColor)
 
-    # Draw rectangles per bin
     for _, row in playertest.iterrows():
         bin_num = row["pitch_bin"]
         xT_diff = row["xT_value_compared"]
 
         x_idx = (bin_num - 1) // y_bins
         y_idx = (bin_num - 1) % y_bins
-        y_idx = (y_bins - 1) - y_idx  # Flip horizontally
+        y_idx = (y_bins - 1) - y_idx
 
         x_start = x_idx * (100 / x_bins)
         y_start = y_idx * (100 / y_bins)
@@ -312,9 +278,6 @@ def main():
     st.title("xT Comparison Pitch Map")
     st.subheader("ENG1 25/26 Season (or any selected)")
 
-    # -------------------------------------------------------------------------
-    # File dropdowns
-    # -------------------------------------------------------------------------
     parquet_files = list_parquet_files()
     excel_files = list_excel_files()
 
@@ -337,9 +300,6 @@ def main():
         index=0,
     )
 
-    # -------------------------------------------------------------------------
-    # Load data
-    # -------------------------------------------------------------------------
     with st.spinner("Loading match and minute data..."):
         matchdata = load_match_data(parquet_choice)
         minute_log = load_minute_log(excel_choice)
@@ -348,9 +308,6 @@ def main():
         st.warning("Data could not be loaded. Please check the data sources.")
         return
 
-    # -------------------------------------------------------------------------
-    # Normalise dtypes
-    # -------------------------------------------------------------------------
     for col in ["x", "y", "xT_value"]:
         if col in matchdata.columns:
             matchdata[col] = pd.to_numeric(matchdata[col], errors="coerce")
@@ -360,26 +317,20 @@ def main():
             minute_log["minutes_played"], errors="coerce"
         )
 
-    # Aggregate minutes per player in case of duplicates
     if "player_name" in minute_log.columns:
         minute_log = (
             minute_log.groupby("player_name", as_index=False)["minutes_played"]
             .sum()
         )
 
-    # Optional quick debug ranges in sidebar
     with st.sidebar.expander("Debug: global ranges", expanded=False):
         if "xT_value" in matchdata.columns:
             st.write("xT_value:", matchdata["xT_value"].describe())
         if "minutes_played" in minute_log.columns:
             st.write("minutes_played:", minute_log["minutes_played"].describe())
 
-    # -------------------------------------------------------------------------
-    # Sidebar controls – PLAYER FIRST, THEN POSITION
-    # -------------------------------------------------------------------------
     st.sidebar.header("User Input")
 
-    # 1) Player selector from all players in the dataset
     all_players = (
         matchdata["playerName"]
         .dropna()
@@ -400,7 +351,6 @@ def main():
         index=all_players.index(default_player),
     )
 
-    # 2) Positions restricted to the ones THIS player has actually played
     player_rows = matchdata.loc[matchdata["playerName"] == playername]
 
     positions = (
@@ -429,9 +379,6 @@ def main():
         index=positions.index(default_position),
     )
 
-    # -------------------------------------------------------------------------
-    # Generate plot
-    # -------------------------------------------------------------------------
     if st.sidebar.button("Generate Pitch Map"):
         fig = plot_xt_comparison_for_player(
             matchdata=matchdata,
@@ -444,7 +391,6 @@ def main():
             left, center, right = st.columns([1, 2, 1])
             with center:
                 img_bytes = fig_to_png_bytes(fig)
-                # Adjust width to taste (e.g. 420–480)
                 st.image(img_bytes, width=450)
 
 
