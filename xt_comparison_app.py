@@ -121,7 +121,9 @@ def plot_xt_comparison_for_player(
 ):
 
     positiondata = matchdata.loc[matchdata["playing_position"] == position].copy()
-
+    bad_types = ["position_change", "goal_conceded", "clean_sheet"]
+    if "typeId" in positiondata.columns:
+        positiondata = positiondata[~positiondata["typeId"].isin(bad_types)]
     if "throwin" in positiondata.columns:
         positiondata = positiondata.loc[positiondata["throwin"] != 1]
 
