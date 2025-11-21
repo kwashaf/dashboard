@@ -314,27 +314,32 @@ def main():
     st.title("xT Comparison Pitch Map")
     st.subheader("ENG1 25/26 Season (or any selected)")
 
-    parquet_files = list_parquet_files()
-    excel_files = list_excel_files()
-
-    if not parquet_files:
-        st.error("No parquet files found in the repository/path.")
-        return
-    if not excel_files:
-        st.error("No matching Excel minute-log files found in the repository/path.")
-        return
-
     st.sidebar.header("Data Sources")
-    parquet_choice = st.sidebar.selectbox(
-        "Match data parquet",
-        parquet_files,
+    
+    # 1. Select season
+    season_choice = st.sidebar.selectbox(
+        "Season",
+        list(SEASON_MAP.keys()),
         index=0,
     )
-    excel_choice = st.sidebar.selectbox(
-        "Minutes Excel",
-        excel_files,
+    season_fragment = SEASON_MAP[season_choice]
+    
+    # 2. Select competition
+    competition_choice = st.sidebar.selectbox(
+        "Competition",
+        list(COMP_MAP.keys()),
         index=0,
     )
+    league_prefix = COMP_MAP[competition_choice]
+    
+    # 3. Construct expected filenames
+    parquet_choice = f"{league_prefix}1_{season_fragment}.parquet"
+    excel_choice   = f"{league_prefix}1_{season_fragment}_playerstats_by_position_group.xlsx"
+    
+    st.sidebar.markdown(f"""
+    **Match data file:** `{parquet_choice}`  
+    **Minutes file:** `{excel_choice}`
+    """)
 
     with st.spinner("Loading match and minute data..."):
         matchdata = load_match_data(parquet_choice)
