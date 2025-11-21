@@ -221,14 +221,14 @@ def plot_xt_comparison_for_player(
     playertest["playerName"] = playertest["playerName"].fillna(first_name)
     playertest["xT_value_compared"] = playertest["xT_value_compared"].fillna(0)
     with st.expander("Debug: Full player bin table (all 70 bins)", expanded=True):
-    debug_df = playertest[[
-        "pitch_bin",
-        "playerName",
-        "xT_value_per_90",
-        "avg_xT_value_per_90",
-        "xT_value_compared"
-    ]].copy().sort_values("pitch_bin")
-    st.dataframe(debug_df, use_container_width=True)
+        debug_df = playertest[[
+            "pitch_bin",
+            "playerName",
+            "xT_value_per_90",
+            "avg_xT_value_per_90",
+            "xT_value_compared"
+        ]].copy().sort_values("pitch_bin")
+        st.dataframe(debug_df, use_container_width=True)
     with st.expander("Debug: xT_value_compared distribution", expanded=False):
         st.write(playertest["xT_value_compared"].describe())
 
