@@ -1,6 +1,14 @@
 ENG1_2425.parquet
-ENG1_2425_playerstats_by_position_group.xlsx
 ENG1_2526.parquet
+GER1_2425.parquet
+GER1_2526.parquet
+ITA1_2425.parquet
+ITA1_2526.parquet
+FRA1_2425.parquet
+FRA1_2526.parquet
+SPA1_2425.parquet
+SPA1_2526.parquet
+ENG1_2425_playerstats_by_position_group.xlsx
 ENG1_2526_playerstats_by_position_group.xlsx
 FRA1_2526_playerstats_by_position_group.xlsx
 GER1_2526_playerstats_by_position_group.xlsx
@@ -9,4 +17,7 @@ ITA1_2526_playerstats_by_position_group.xlsx
 NED1_2526_playerstats_by_position_group.xlsx
 POR1_2526_playerstats_by_position_group.xlsx
 SPA1_2526_playerstats_by_position_group.xlsx
-TIER1_2526_playerstats_by_position_group.xlsx
+FRA1_2425_playerstats_by_position_group.xlsx
+GER1_2425_playerstats_by_position_group.xlsx
+ITA1_2425_playerstats_by_position_group.xlsx
+SPA1_2425_playerstats_by_position_group.xlsx
