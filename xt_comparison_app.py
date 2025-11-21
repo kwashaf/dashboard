@@ -26,7 +26,20 @@ PitchColor = "#f5f6fc"
 BackgroundColor = "#381d54"
 PitchLineColor = "Black"
 
+SEASON_MAP = {
+    "2024/25": "2425",
+    "2025":    "2025",
+    "2025/26": "2526",
+}
 
+# Competition → league prefix
+COMP_MAP = {
+    "Premier League": "ENG",
+    "La Liga":        "SPA",
+    "Bundesliga":     "GER",
+    "Ligue 1":        "FRA",
+    "Serie A":        "ITA",
+}
 # -----------------------------------------------------------------------------
 # HELPERS
 # -----------------------------------------------------------------------------
