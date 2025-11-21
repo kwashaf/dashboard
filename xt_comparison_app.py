@@ -67,9 +67,9 @@ def normalize_position(pos: str) -> str:
     elif 'CF(2)' in pos:
         return 'CF(2)'
     elif 'LW' in pos or 'LM' in pos:
-        return 'LMW'
+        return 'LW'
     elif 'RW' in pos or 'RM' in pos:
-        return 'RMW'
+        return 'RW'
     elif pos in ['DM', 'AM', 'CF', 'LB', 'RB']:
         return pos
     else:
@@ -165,6 +165,7 @@ def plot_xt_comparison_for_player(
     minute_log: pd.DataFrame,
     position: str,
     playername: str,
+    season: str,
 ):
 
     positiondata = matchdata.loc[matchdata["playing_position"] == position].copy()
@@ -345,7 +346,7 @@ def plot_xt_comparison_for_player(
         ax.add_patch(rect)
 
     ax.set_title(
-        f"{first_name} | Impact by Pitch Area as {position}",
+        f"{first_name} | Impact by Pitch Area as {position} in {season}",
         fontsize=14,
         pad=10,
         color="white",
@@ -472,12 +473,13 @@ def main():
     )
 
     if st.sidebar.button("Generate Pitch Map"):
-        fig = plot_xt_comparison_for_player(
-            matchdata=matchdata,
-            minute_log=minute_log,
-            position=position,
-            playername=playername,
-        )
+    fig = plot_xt_comparison_for_player(
+        matchdata=matchdata,
+        minute_log=minute_log,
+        position=position,
+        playername=playername,
+        season=season_choice,   # <-- passes readable label like "2025/26"
+    )
 
         if fig is not None:
             left, center, right = st.columns([1, 2, 1])
