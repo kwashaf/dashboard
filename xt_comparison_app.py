@@ -40,6 +40,7 @@ COMP_MAP = {
     "Ligue 1":        "FRA",
     "Serie A":        "ITA",
     "League of Ireland":    "IRE",
+    "Scottish Premiership": "SCO",
 }
 # -----------------------------------------------------------------------------
 # POSITION NORMALISATION
