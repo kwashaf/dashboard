@@ -318,7 +318,7 @@ def plot_xt_comparison_for_player(
         pitch_color=PitchColor,
         line_color=PitchLineColor,
     )
-    fig, ax = pitch.draw(figsize=(3.8, 6))
+    fig, ax = pitch.draw(figsize=(6, 9))
     fig.set_facecolor(BackgroundColor)
 
     for _, row in playertest.iterrows():
