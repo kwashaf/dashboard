@@ -194,7 +194,7 @@ def plot_xt_comparison_for_player(
             ]
             if col in positiondata.columns
         ]
-        st.dataframe(positiondata[debug_cols].head(50))
+  #      st.dataframe(positiondata[debug_cols].head(50))
 
     positiondata["x"] = positiondata["x"].clip(lower=0, upper=100)
     positiondata["y"] = positiondata["y"].clip(lower=0, upper=100)
@@ -305,7 +305,7 @@ def plot_xt_comparison_for_player(
             "avg_xT_value_per_90",
             "xT_value_compared"
         ]].copy().sort_values("pitch_bin")
-        st.dataframe(debug_df, use_container_width=True)
+    #    st.dataframe(debug_df, use_container_width=True)
     with st.expander("Debug: xT_value_compared distribution", expanded=False):
         st.write(playertest["xT_value_compared"].describe())
 
