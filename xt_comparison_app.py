@@ -1120,18 +1120,21 @@ def main():
             ]
     
             # Attacking events
-            atteven = ['Take On', 'Miss', 'Attempt Saved', 'Goal', 'Aerial']
+            atteven = ['Take on', 'Miss', 'Attempt Saved', 'Goal', 'Aerial', 'Post']
             
             attackingevents = playerevents[
                 (playerevents['typeId'].isin(atteven)) |
                 (playerevents.get('keyPass', 0) == 1) |
-                (playerevents.get('assist', 0) == 1)
+                (playerevents.get('assist', 0) == 1) |
+                (playerevents.get('progressive_carry', 'No') == "Yes")
             ].copy()
             
             # Remove defensive aerials (same rule as before)
             attackingevents = attackingevents[
                 ~((attackingevents['typeId'] == 'Aerial') & (attackingevents['x'] < 50))
             ]
+            
+            # Remove corners
             attackingevents = attackingevents[
                 ~(attackingevents.get('corner', 0) == 1)
             ]
