@@ -905,7 +905,8 @@ def main():
     # --------------------------
     if "playing_position" in matchdata.columns:
         matchdata["playing_position"] = matchdata["playing_position"].apply(normalize_position)
-
+    if "pass_recipient_position" in matchdata.columns:
+        matchdata["pass_recipient_position"] = matchdata["pass_recipient_position"].apply(normalize_position)
     if matchdata.empty or player_stats.empty:
         st.warning("Data could not be loaded. Please check the data sources.")
         return
@@ -1104,7 +1105,10 @@ def main():
                 (playerrecpass['x'].between(1, 99)) &
                 (playerrecpass['y'].between(1, 99))
             ]
-    
+                playerrecpass = playerrecpass[
+                (playerrecpass['end_x'].between(1, 99)) &
+                (playerrecpass['end_y'].between(1, 99))
+            ]
             # Defensive events
             defeven = [
                 'Tackle','Aerial','Challenge','Interception',
@@ -1116,12 +1120,21 @@ def main():
             ]
     
             # Attacking events
-            atteven = ['Take on','Miss','Attempt Saved','Goal','Aerial']
-            attackingevents = playerevents[playerevents['typeId'].isin(atteven)].copy()
+            atteven = ['Take On', 'Miss', 'Attempt Saved', 'Goal', 'Aerial']
+            
+            attackingevents = playerevents[
+                (playerevents['typeId'].isin(atteven)) |
+                (playerevents.get('keyPass', 0) == 1) |
+                (playerevents.get('assist', 0) == 1)
+            ].copy()
+            
+            # Remove defensive aerials (same rule as before)
             attackingevents = attackingevents[
                 ~((attackingevents['typeId'] == 'Aerial') & (attackingevents['x'] < 50))
             ]
-    
+            attackingevents = attackingevents[
+                ~(attackingevents.get('corner', 0) == 1)
+            ]
             # ---------------------------------------------------------
             # 2. Build the full 3-pane Matplotlib figure
             # ---------------------------------------------------------
