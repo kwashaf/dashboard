@@ -838,8 +838,11 @@ def main():
             minute_threshold=minuteinput,
         )
 
-        if pizza_fig is not None:
-            st.pyplot(pizza_fig)
+    if pizza_fig is not None:
+        left, center, right = st.columns([1, 2, 1])
+        with center:
+            buf = fig_to_png_bytes(pizza_fig)
+            st.image(buf, width=450)   # <<< same size as Pitch Map
 
 if __name__ == "__main__":
     main()
