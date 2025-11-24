@@ -963,6 +963,21 @@ def main():
             teamname = "Unknown"
     else:
         teamname = "Unknown"
+
+    teamlog = pd.read_csv("teamlog.csv")   # or st.cache_data if needed
+    
+    try:
+        teamcode = teamlog.loc[teamlog["name"] == teamname, "id"].iloc[0]
+    except:
+        teamcode = None
+    
+    if teamcode:
+        teamlogo_url = f"https://omo.akamai.opta.net/image.php?h=www.scoresway.com&sport=football&entity=team&description=badges&dimensions=150&id={teamcode}"
+    
+        from urllib.request import urlopen
+        teamimage = Image.open(urlopen(teamlogo_url))
+    else:
+        teamimage = None   # fallback
     positions = (
         player_rows["playing_position"]
         .dropna()
