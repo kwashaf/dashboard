@@ -978,6 +978,12 @@ def main():
         teamimage = Image.open(urlopen(teamlogo_url))
     else:
         teamimage = None   # fallback
+    wtaimaged = Image.open(
+        requests.get(
+            "https://github.com/WTAnalysis/dashboard/raw/main/wtatransnew.png",
+            stream=True,
+        ).raw
+    )
     positions = (
         player_rows["playing_position"]
         .dropna()
