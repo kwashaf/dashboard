@@ -6,3 +6,6 @@ matplotlib
 mplsoccer
 pyarrow
 openpyxl
+Pillow
+urllib3
+fonttools
