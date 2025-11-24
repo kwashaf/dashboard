@@ -1076,7 +1076,7 @@ def main():
     
             # Attacking events
             atteven = ['Take on','Miss','Attempt Saved','Goal','Aerial']
-            attackingevents = playerevents[playerevents['type_name'].isin(atteven)].copy()
+            attackingevents = playerevents[playerevents['typeId'].isin(atteven)].copy()
             attackingevents = attackingevents[
                 ~((attackingevents['typeId'] == 'Aerial') & (attackingevents['x'] < 50))
             ]
