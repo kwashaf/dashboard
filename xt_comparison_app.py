@@ -510,7 +510,7 @@ def build_player_pizza(
     ]
 
     if playerrow.empty:
-        st.warning(f"Player hasn't played over {minute_threshold} in selected position")
+        st.warning(f"Player hasn't played over {minute_threshold} minutes in selected position")
         return None
 
     playerrow = playerrow.iloc[0]
