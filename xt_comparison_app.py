@@ -796,61 +796,61 @@ def main():
         key="minuteinput",
     )
 
-# --------------------------
-# TABS — Pitch Map + Player Pizza
-# --------------------------
-tab1, tab2 = st.tabs(["Pitch Impact Map", "Player Pizza"])
-
-# Init session state
-if "active_tab" not in st.session_state:
-    st.session_state["active_tab"] = "Pitch Impact Map"
-
-# ================================================================
-# TAB 1 — Pitch Impact Map
-# ================================================================
-with tab1:
-    st.session_state["active_tab"] = "Pitch Impact Map"
-    st.header("Pitch Impact Map")
-
-    if st.sidebar.button("Generate Pitch Map"):
-        fig = plot_xt_comparison_for_player(
-            matchdata=matchdata,
-            minute_log=minute_log,
-            position=position,
-            playername=playername,
-            season=season_choice,
-        )
-
-        if fig is not None:
-            left, center, right = st.columns([1, 2, 1])
-            with center:
-                st.image(fig_to_png_bytes(fig), width=450)
-
-# ================================================================
-# TAB 2 — Player Pizza
-# ================================================================
-with tab2:
-    st.session_state["active_tab"] = "Player Pizza"
-    st.header("Player Pizza")
-
-    # ⭐ Only generate pizza IF this tab is active AND the data exists
-    if st.session_state["active_tab"] == "Player Pizza":
-
-        if "player_stats" not in locals():
-            st.error("Player stats data not loaded.")
-        else:
-            pizza_fig = build_player_pizza(
-                player_stats=player_stats,
-                teamlog=teamlog,
-                playername=playername,
+    # --------------------------
+    # TABS — Pitch Map + Player Pizza
+    # --------------------------
+    tab1, tab2 = st.tabs(["Pitch Impact Map", "Player Pizza"])
+    
+    # Init session state
+    if "active_tab" not in st.session_state:
+        st.session_state["active_tab"] = "Pitch Impact Map"
+    
+    # ================================================================
+    # TAB 1 — Pitch Impact Map
+    # ================================================================
+    with tab1:
+        st.session_state["active_tab"] = "Pitch Impact Map"
+        st.header("Pitch Impact Map")
+    
+        if st.sidebar.button("Generate Pitch Map"):
+            fig = plot_xt_comparison_for_player(
+                matchdata=matchdata,
+                minute_log=minute_log,
                 position=position,
-                competition_name=competition_choice,
-                season_name=season_choice,
-                minute_threshold=minuteinput,
+                playername=playername,
+                season=season_choice,
             )
-
-            if pizza_fig is not None:
+    
+            if fig is not None:
                 left, center, right = st.columns([1, 2, 1])
                 with center:
-                    img_bytes = fig_to_png_bytes(pizza_fig)
-                    st.image(img_bytes, width=450)
+                    st.image(fig_to_png_bytes(fig), width=450)
+    
+    # ================================================================
+    # TAB 2 — Player Pizza
+    # ================================================================
+    with tab2:
+        st.session_state["active_tab"] = "Player Pizza"
+        st.header("Player Pizza")
+    
+        # ⭐ Only generate pizza IF this tab is active AND the data exists
+        if st.session_state["active_tab"] == "Player Pizza":
+    
+            if "player_stats" not in locals():
+                st.error("Player stats data not loaded.")
+            else:
+                pizza_fig = build_player_pizza(
+                    player_stats=player_stats,
+                    teamlog=teamlog,
+                    playername=playername,
+                    position=position,
+                    competition_name=competition_choice,
+                    season_name=season_choice,
+                    minute_threshold=minuteinput,
+                )
+    
+                if pizza_fig is not None:
+                    left, center, right = st.columns([1, 2, 1])
+                    with center:
+                        img_bytes = fig_to_png_bytes(pizza_fig)
+                        st.image(img_bytes, width=450)
