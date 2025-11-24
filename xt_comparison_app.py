@@ -671,7 +671,185 @@ def build_player_pizza(
         add_image(teamimage, fig, left=0.05, bottom=0.05, width=0.20, height=0.125)
 
     return fig
-
+    def create_player_actions_figure(
+        attackingevents,
+        defensiveevents,
+        playerrecpass,
+        playername,
+        teamname,
+        competition_name,
+        season_name,
+        teamimage,
+        wtaimaged,
+        BackgroundColor,
+        PitchColor,
+        PitchLineColor,
+        TextColor
+    ):
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon as MplPolygon
+        from mplsoccer.pitch import VerticalPitch
+        from scipy.spatial import ConvexHull
+        from scipy.stats import gaussian_kde
+        import numpy as np
+    
+        # Create a figure with three subplots side by side
+        fig, axes = plt.subplots(1, 3, figsize=(18, 8.25), facecolor=BackgroundColor)
+        plt.subplots_adjust(wspace=.1)
+    
+        # Define pitches
+        pitch_arrows = VerticalPitch(pitch_type='opta', pitch_color=PitchColor, line_color=PitchLineColor)
+        pitch_bins = VerticalPitch(pitch_type='opta', pitch_color=PitchColor, line_color=PitchLineColor)
+    
+        # Draw pitches
+        pitch_arrows.draw(ax=axes[0], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
+        axes[0].set_title(f'{playername} - Attacking Event Locations', fontsize=10, color=TextColor)
+    
+        pitch_bins.draw(ax=axes[1], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
+        axes[1].set_title(f'{playername} - Defensive Event Locations', fontsize=10, color=TextColor)
+    
+        pitch_bins.draw(ax=axes[2], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
+        axes[2].set_title(f'{playername} - Pass Reception Locations', fontsize=10, color=TextColor)
+    
+        # ---------------------------------------------------------
+        # ATTACKING EVENTS (PITCH 1)
+        # ---------------------------------------------------------
+        points_pass = np.array([(row['start_y'], row['start_x']) for _, row in attackingevents.iterrows()])
+    
+        if len(points_pass) > 3:
+            kde_pass = gaussian_kde(points_pass.T)
+            x_grid, y_grid = np.meshgrid(np.linspace(0, 100, 100), np.linspace(0, 100, 100))
+            density_pass = kde_pass(np.vstack([x_grid.ravel(), y_grid.ravel()]))
+    
+            max_density_index_pass = np.argmax(density_pass)
+            max_density_x_pass = x_grid.ravel()[max_density_index_pass]
+            max_density_y_pass = y_grid.ravel()[max_density_index_pass]
+    
+            radius = 15
+            points_within_radius_pass = points_pass[
+                ((points_pass[:, 0] - max_density_x_pass) ** 2 +
+                 (points_pass[:, 1] - max_density_y_pass) ** 2) < radius ** 2
+            ]
+    
+            if len(points_within_radius_pass) >= 3:
+                hull_pass = ConvexHull(points_within_radius_pass)
+                x_hull_pass = points_within_radius_pass[hull_pass.vertices, 0]
+                y_hull_pass = points_within_radius_pass[hull_pass.vertices, 1]
+                hull_patch_pass = MplPolygon(
+                    np.column_stack([x_hull_pass, y_hull_pass]),
+                    closed=True,
+                    edgecolor=BackgroundColor,
+                    facecolor=BackgroundColor,
+                    alpha=0.3
+                )
+                axes[0].add_patch(hull_patch_pass)
+    
+        # Plot attacking events
+        for _, row in attackingevents.iterrows():
+            axes[0].plot(row['y'], row['x'], marker='o', markerfacecolor='none',
+                         color=BackgroundColor, markersize=2)
+    
+        # ---------------------------------------------------------
+        # DEFENSIVE EVENTS (PITCH 2)
+        # ---------------------------------------------------------
+        points_def = np.array([(row['y'], row['x']) for _, row in defensiveevents.iterrows()])
+    
+        if len(points_def) > 3:
+            kde_def = gaussian_kde(points_def.T)
+            density_def = kde_def(np.vstack([x_grid.ravel(), y_grid.ravel()]))
+    
+            max_density_idx_def = np.argmax(density_def)
+            max_density_x_def = x_grid.ravel()[max_density_idx_def]
+            max_density_y_def = y_grid.ravel()[max_density_idx_def]
+    
+            points_within_radius_def = points_def[
+                ((points_def[:, 0] - max_density_x_def) ** 2 +
+                 (points_def[:, 1] - max_density_y_def) ** 2) < radius ** 2
+            ]
+    
+            if len(points_within_radius_def) >= 3:
+                hull_def = ConvexHull(points_within_radius_def)
+                x_hull_def = points_within_radius_def[hull_def.vertices, 0]
+                y_hull_def = points_within_radius_def[hull_def.vertices, 1]
+                hull_patch_def = MplPolygon(
+                    np.column_stack([x_hull_def, y_hull_def]),
+                    closed=True,
+                    edgecolor=BackgroundColor,
+                    facecolor=BackgroundColor,
+                    alpha=0.3
+                )
+                axes[1].add_patch(hull_patch_def)
+    
+        # Plot defensive events
+        for _, row in defensiveevents.iterrows():
+            axes[1].plot(row['y'], row['x'], marker='o', markerfacecolor='none',
+                         color=BackgroundColor, markersize=2)
+    
+        # ---------------------------------------------------------
+        # PASS RECEPTIONS (PITCH 3)
+        # ---------------------------------------------------------
+        points_rec = np.array([(row['end_y'], row['end_x']) for _, row in playerrecpass.iterrows()])
+    
+        if len(points_rec) > 3:
+            kde_rec = gaussian_kde(points_rec.T)
+            density_rec = kde_rec(np.vstack([x_grid.ravel(), y_grid.ravel()]))
+    
+            max_density_idx_rec = np.argmax(density_rec)
+            max_density_x_rec = x_grid.ravel()[max_density_idx_rec]
+            max_density_y_rec = y_grid.ravel()[max_density_idx_rec]
+    
+            points_within_radius_rec = points_rec[
+                ((points_rec[:, 0] - max_density_x_rec) ** 2 +
+                 (points_rec[:, 1] - max_density_y_rec) ** 2) < radius ** 2
+            ]
+    
+            if len(points_within_radius_rec) >= 3:
+                hull_rec = ConvexHull(points_within_radius_rec)
+                x_hull_rec = points_within_radius_rec[hull_rec.vertices, 0]
+                y_hull_rec = points_within_radius_rec[hull_rec.vertices, 1]
+                hull_patch_rec = MplPolygon(
+                    np.column_stack([x_hull_rec, y_hull_rec]),
+                    closed=True,
+                    edgecolor=BackgroundColor,
+                    facecolor=BackgroundColor,
+                    alpha=0.3
+                )
+                axes[2].add_patch(hull_patch_rec)
+    
+        # Plot pass receptions
+        for _, row in playerrecpass.iterrows():
+            axes[2].plot(row['end_y'], row['end_x'], marker='o', markerfacecolor='none',
+                         color=BackgroundColor, markersize=2)
+    
+        # ---------------------------------------------------------
+        # TEXT LABELS
+        # ---------------------------------------------------------
+        axes[0].text(50, -5, 'Dots show locations of events', ha='center', fontsize=9, color=TextColor)
+    
+        axes[0].text(50, -13, f'{playername} - {teamname}', ha='center', fontsize=12, color=TextColor, fontweight='bold')
+        axes[0].text(50, -20, f'{competition_name} | {season_name}', ha='center', fontsize=12, color=TextColor, fontweight='bold')
+    
+        axes[1].text(50, -5, 'Data from Opta', ha='center', fontsize=9, color=TextColor)
+    
+        axes[2].text(50, -5, 'Shaded area shows most frequent area for action', ha='center', fontsize=9, color=TextColor)
+        axes[2].text(50, -10, 'Attacking Events are shots, dribbles, shot assists & aerial duels',
+                     ha='center', fontsize=9, color=TextColor)
+        axes[2].text(50, -15, 'Defensive Events are tackles, challenges, aerials,',
+                     ha='center', fontsize=9, color=TextColor)
+        axes[2].text(50, -18, 'interceptions, ball recoveries and blocked shots',
+                     ha='center', fontsize=9, color=TextColor)
+        axes[2].text(50, -23, 'Pass Receptions are where player receives pass',
+                     ha='center', fontsize=9, color=TextColor)
+        axes[2].text(50, -26, 'from team-mate',
+                     ha='center', fontsize=9, color=TextColor)
+    
+        # ---------------------------------------------------------
+        # LOGOS
+        # ---------------------------------------------------------
+        add_image(teamimage, fig, left=0.57, bottom=-0.03, width=0.05, alpha=1)
+        add_image(wtaimaged, fig, left=0.433, bottom=-0.02175, width=0.06, alpha=1)
+    
+        return fig
 # -----------------------------------------------------------------------------
 # STREAMLIT APP
 # -----------------------------------------------------------------------------
@@ -809,7 +987,7 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2 = st.tabs(["Pitch Impact Map", "Player Pizza"])
+    tab1, tab2, tab3 = st.tabs(["Pitch Impact Map", "Player Pizza", "Player Actions"])
 
     # Init session state
     if "active_tab" not in st.session_state:
@@ -860,6 +1038,63 @@ def main():
                     img_bytes = fig_to_png_bytes(pizza_fig)
                     st.image(img_bytes, width=450)
 
-
+# ================================================================
+# TAB 3 — Player Actions
+# ================================================================
+    with tab3:
+        st.session_state["active_tab"] = "Player Actions"
+        st.header("Player Actions")
+    
+        # Run only when this tab is active
+        if st.session_state["active_tab"] == "Player Actions":
+    
+            # ---------------------------------------------------------
+            # 1. Build event datasets from matchdata
+            # ---------------------------------------------------------
+            playerevents = matchdata.loc[matchdata["playerName"] == playername].copy()
+            playerevents = playerevents.loc[playerevents["playing_position"] == position]
+    
+            playerrecpass = matchdata.loc[matchdata['pass_recipient'] == playername].copy()
+            playerrecpass = playerrecpass.loc[playerrecpass['pass_recipient_position'] == position]
+            playerrecpass = playerrecpass.loc[playerrecpass['outcome'] == "Successful"]
+    
+            # Filter out erroneous coordinates
+            playerrecpass = playerrecpass[
+                (playerrecpass['x'].between(1, 99)) &
+                (playerrecpass['y'].between(1, 99))
+            ]
+    
+            # Defensive events
+            defeven = [
+                'Tackle','Aerial','Challenge','Interception',
+                'Save','Clearance','Ball recovery'
+            ]
+            defensiveevents = playerevents[playerevents['typeId'].isin(defeven)].copy()
+            defensiveevents = defensiveevents[
+                ~((defensiveevents['typeId'] == 'aerial') & (defensiveevents['x'] >= 50))
+            ]
+    
+            # Attacking events
+            atteven = ['Take on','Miss','Attempt Saved','Goal','Aerial']
+            attackingevents = playerevents[playerevents['type_name'].isin(atteven)].copy()
+            attackingevents = attackingevents[
+                ~((attackingevents['typeId'] == 'Aerial') & (attackingevents['x'] < 50))
+            ]
+    
+            # ---------------------------------------------------------
+            # 2. Build the full 3-pane Matplotlib figure
+            # ---------------------------------------------------------
+            fig = create_player_actions_figure(
+                attackingevents, defensiveevents, playerrecpass,
+                playername, position, competition_choice, season_choice,
+                teamimage
+            )
+    
+            # ---------------------------------------------------------
+            # 3. Display figure in center with width control
+            # ---------------------------------------------------------
+            left, center, right = st.columns([1, 2, 1])
+            with center:
+                st.image(fig_to_png_bytes(fig), width=900)
 if __name__ == "__main__":
     main()
