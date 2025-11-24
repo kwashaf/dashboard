@@ -1105,7 +1105,7 @@ def main():
                 (playerrecpass['x'].between(1, 99)) &
                 (playerrecpass['y'].between(1, 99))
             ]
-                playerrecpass = playerrecpass[
+            playerrecpass = playerrecpass[
                 (playerrecpass['end_x'].between(1, 99)) &
                 (playerrecpass['end_y'].between(1, 99))
             ]
