@@ -675,7 +675,7 @@ def build_player_pizza(
 # STREAMLIT APP
 # -----------------------------------------------------------------------------
 def main():
-    st.title("WT Analysis - Player Dashboard"")
+    st.title("WT Analysis - Player Dashboard")
     st.subheader("Select Season, Competition, Player & Position on the Left")
 
     st.sidebar.header("Data Sources")
