@@ -510,7 +510,7 @@ def build_player_pizza(
     ]
 
     if playerrow.empty:
-        st.warning("Player has no percentile data for this position.")
+        st.warning(f"Player hasn't played over {minute_threshold} in selected position")
         return None
 
     playerrow = playerrow.iloc[0]
