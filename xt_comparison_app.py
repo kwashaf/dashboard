@@ -721,7 +721,7 @@ def create_player_actions_figure(
     # ---------------------------------------------------------
     # ATTACKING EVENTS (PITCH 1)
     # ---------------------------------------------------------
-    points_pass = np.array([(row['start_y'], row['start_x']) for _, row in attackingevents.iterrows()])
+    points_pass = np.array([(row['y'], row['x']) for _, row in attackingevents.iterrows()])
 
     if len(points_pass) > 3:
         kde_pass = gaussian_kde(points_pass.T)
