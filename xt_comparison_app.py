@@ -688,7 +688,7 @@ def create_player_actions_figure(
 ):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Polygon as MplPolygon
-    from mplsoccer.pitch import VerticalPitch
+    from mplsoccer import VerticalPitch
     from scipy.spatial import ConvexHull
     from scipy.stats import gaussian_kde
     import numpy as np
