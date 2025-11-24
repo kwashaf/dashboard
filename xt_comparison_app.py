@@ -1085,9 +1085,19 @@ def main():
             # 2. Build the full 3-pane Matplotlib figure
             # ---------------------------------------------------------
             fig = create_player_actions_figure(
-                attackingevents, defensiveevents, playerrecpass,
-                playername, position, competition_choice, season_choice,
-                teamimage
+                attackingevents,
+                defensiveevents,
+                playerrecpass,
+                playername,
+                teamname,               # <- ADD THIS
+                competition_choice,
+                season_choice,
+                teamimage,              # already defined from player pizza section
+                wtaimaged,              # <- ADD THIS
+                BackgroundColor,        # <- ADD THIS
+                PitchColor,             # <- ADD THIS
+                PitchLineColor,         # <- ADD THIS
+                TextColor               # <- ADD THIS
             )
     
             # ---------------------------------------------------------
