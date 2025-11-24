@@ -796,38 +796,47 @@ def main():
         key="minuteinput",
     )
 
-    # --------------------------
-    # TABS — Pitch Map + Player Pizza
-    # --------------------------
-    tab1, tab2 = st.tabs(["Pitch Impact Map", "Player Pizza"])
+# --------------------------
+# TABS — Pitch Map + Player Pizza
+# --------------------------
+tab1, tab2 = st.tabs(["Pitch Impact Map", "Player Pizza"])
 
-    # ================================================================
-    # TAB 1 — EXISTING PITCH IMPACT MAP
-    # ================================================================
-    with tab1:
-        st.header("Pitch Impact Map")
+# Initialise session state if not set
+if "active_tab" not in st.session_state:
+    st.session_state["active_tab"] = "Pitch Impact Map"
 
-        if st.sidebar.button("Generate Pitch Map"):
-            fig = plot_xt_comparison_for_player(
-                matchdata=matchdata,
-                minute_log=minute_log,
-                position=position,
-                playername=playername,
-                season=season_choice,
-            )
+# ================================================================
+# TAB 1 — PITCH MAP
+# ================================================================
+with tab1:
+    st.session_state.active_tab = "Pitch Impact Map"
 
-            if fig is not None:
-                center = st.columns([1, 2, 1])[1]
-                with center:
-                    st.image(fig_to_png_bytes(fig), width=450)
+    st.header("Pitch Impact Map")
 
-    # ================================================================
-    # TAB 2 — NEW PLAYER PIZZA TAB
-    # ================================================================
-    with tab2:
-        st.header("Player Pizza")
+    if st.sidebar.button("Generate Pitch Map"):
+        fig = plot_xt_comparison_for_player(
+            matchdata=matchdata,
+            minute_log=minute_log,
+            position=position,
+            playername=playername,
+            season=season_choice,
+        )
 
-        # Use the dedicated pizza builder
+        if fig is not None:
+            left, center, right = st.columns([1, 2, 1])
+            with center:
+                st.image(fig_to_png_bytes(fig), width=450)
+
+# ================================================================
+# TAB 2 — PLAYER PIZZA
+# ================================================================
+with tab2:
+    st.session_state.active_tab = "Player Pizza"
+
+    st.header("Player Pizza")
+
+    # ⭐ Only run pizza when this tab is active
+    if st.session_state.active_tab == "Player Pizza":
         pizza_fig = build_player_pizza(
             player_stats=player_stats,
             teamlog=teamlog,
@@ -838,11 +847,11 @@ def main():
             minute_threshold=minuteinput,
         )
 
-    if pizza_fig is not None:
-        left, center, right = st.columns([1, 2, 1])
-        with center:
-            buf = fig_to_png_bytes(pizza_fig)
-            st.image(buf, width=450)   # <<< same size as Pitch Map
+        if pizza_fig is not None:
+            left, center, right = st.columns([1, 2, 1])
+            with center:
+                img_bytes = fig_to_png_bytes(pizza_fig)
+                st.image(img_bytes, width=450)
 
 if __name__ == "__main__":
     main()
