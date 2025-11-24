@@ -9,3 +9,4 @@ openpyxl
 Pillow
 urllib3
 fonttools
+scipy
