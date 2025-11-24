@@ -15,7 +15,7 @@ from mplsoccer import VerticalPitch, PyPizza, add_image
 # -----------------------------------------------------------------------------
 # PAGE CONFIG
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="Player Impact by Position", layout="wide")
+st.set_page_config(page_title="WT Analysis - Player Dashboard", layout="wide")
 
 # -----------------------------------------------------------------------------
 # REPO CONFIG – tweak these if layout changes
