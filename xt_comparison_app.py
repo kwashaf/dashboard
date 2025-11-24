@@ -390,6 +390,15 @@ def build_player_pizza(
         st.error("Column 'minutes_played' missing from stats file.")
         return None
 
+    # -----------------------------------------------------------------
+    # NORMALISE LMW / RMW → LW / RW
+    # -----------------------------------------------------------------
+    position_replacements = {
+        "LMW": "LW",
+        "RMW": "RW",
+    }
+    player_stats["position_group"] = player_stats["position_group"].replace(position_replacements)
+
     # Filter by selected position
     position_data = player_stats.loc[player_stats["position_group"] == position].copy()
 
