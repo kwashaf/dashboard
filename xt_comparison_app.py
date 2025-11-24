@@ -1116,7 +1116,7 @@ def main():
             ]
             defensiveevents = playerevents[playerevents['typeId'].isin(defeven)].copy()
             defensiveevents = defensiveevents[
-                ~((defensiveevents['typeId'] == 'aerial') & (defensiveevents['x'] >= 50))
+                ~((defensiveevents['typeId'] == 'Aerial') & (defensiveevents['x'] >= 50))
             ]
     
             # Attacking events
@@ -1159,6 +1159,6 @@ def main():
             # ---------------------------------------------------------
             left, center, right = st.columns([1, 2, 1])
             with center:
-                st.image(fig_to_png_bytes(fig), width=900)
+                st.image(fig_to_png_bytes(fig), width=1350)
 if __name__ == "__main__":
     main()
