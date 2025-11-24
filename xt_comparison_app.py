@@ -651,7 +651,7 @@ def build_player_pizza(
     # Credits
     fig.text(
         0.05, 0.02,
-        "Data: Opta & Transfermarkt | Per 90 metrics | Minimum 360 mins",
+        f"Data: Opta & Transfermarkt | Per 90 metrics | Minimum {minute_threshold} mins",
         size=9, color="#000000"
     )
 
