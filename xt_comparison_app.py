@@ -1157,7 +1157,7 @@ def main():
             # ---------------------------------------------------------
             # 3. Display figure in center with width control
             # ---------------------------------------------------------
-            left, center, right = st.columns([1, 2, 1])
+            left, center, right = st.columns([1, 3, 1])
             with center:
                 st.image(fig_to_png_bytes(fig), width=1350)
 if __name__ == "__main__":
