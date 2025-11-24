@@ -28,7 +28,7 @@ DATA_DIR = ""  # e.g. "data" if your files are in /data
 PitchColor = "#f5f6fc"
 BackgroundColor = "#381d54"
 PitchLineColor = "Black"
-TextColor = "Black"
+TextColor = "White"
 
 SEASON_MAP = {
     "2024/25": "2425",
