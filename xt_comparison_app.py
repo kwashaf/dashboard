@@ -712,6 +712,13 @@ def create_player_actions_figure(
     axes[2].set_title(f'{playername} - Pass Reception Locations', fontsize=10, color=TextColor)
 
     # ---------------------------------------------------------
+    # SHARED KDE GRID (IMPORTANT FIX)
+    # ---------------------------------------------------------
+    x_grid, y_grid = np.meshgrid(
+        np.linspace(0, 100, 100),
+        np.linspace(0, 100, 100)
+    )
+    # ---------------------------------------------------------
     # ATTACKING EVENTS (PITCH 1)
     # ---------------------------------------------------------
     points_pass = np.array([(row['start_y'], row['start_x']) for _, row in attackingevents.iterrows()])
