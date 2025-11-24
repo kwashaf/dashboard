@@ -949,7 +949,20 @@ def main():
     )
 
     player_rows = matchdata.loc[matchdata["playerName"] == playername]
-
+    # -------------------------------------------------------
+    # TEAM NAME (needed for Pizza & Player Actions)
+    # -------------------------------------------------------
+    if "team_name" in matchdata.columns:
+        try:
+            teamname = (
+                matchdata.loc[matchdata["playerName"] == playername, "team_name"]
+                .dropna()
+                .iloc[0]
+            )
+        except:
+            teamname = "Unknown"
+    else:
+        teamname = "Unknown"
     positions = (
         player_rows["playing_position"]
         .dropna()
