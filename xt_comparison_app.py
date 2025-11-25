@@ -474,7 +474,7 @@ def build_player_pizza(
             "total_threat_prevented_per_90",
             "threat_value_per_90",
         ]
-    elif position in ['CF', 'LW', 'RW', 'AM']:
+    elif position in ['CF', 'LW', 'RW', 'AM', 'CF(2)']:
         cols = [
             "shots_per_90", "shot_accuracy", "xG_per_90",
             "goals_per_90", "shot_quality",
