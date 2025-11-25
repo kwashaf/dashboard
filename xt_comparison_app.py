@@ -968,21 +968,21 @@ def main():
         all_players,
         index=all_players.index(default_player),
     )
-# --- NEW: TEAM DROPDOWN for duplicate-name protection ---
-player_teams = (
-    matchdata.loc[matchdata["playerName"] == playername, "team_name"]
-    .dropna()
-    .unique()
-    .tolist()
-)
-
-team_choice = st.sidebar.selectbox(
-    "Select Team",
-    player_teams,
-    index=0,
-    key="team_choice"
-)
-player_rows = matchdata.loc[(matchdata["playerName"] == playername) & (matchdata["team_name"] == team_choice)]
+    # --- NEW: TEAM DROPDOWN for duplicate-name protection ---
+    player_teams = (
+        matchdata.loc[matchdata["playerName"] == playername, "team_name"]
+        .dropna()
+        .unique()
+        .tolist()
+    )
+    
+    team_choice = st.sidebar.selectbox(
+        "Select Team",
+        player_teams,
+        index=0,
+        key="team_choice"
+    )
+    player_rows = matchdata.loc[(matchdata["playerName"] == playername) & (matchdata["team_name"] == team_choice)]
     # -------------------------------------------------------
     # TEAM NAME (needed for Pizza & Player Actions)
     # -------------------------------------------------------
