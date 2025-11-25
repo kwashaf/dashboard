@@ -1050,7 +1050,10 @@ def main():
         st.session_state["active_tab"] = "Pitch Impact Map"
         st.header("Pitch Impact Map")
 
-        if st.sidebar.button("Generate Pitch Map"):
+    if st.sidebar.button("Generate Pitch Map"):
+        if not playername or not position:
+            st.warning("Please select a player and position first.")
+        else:
             fig = plot_xt_comparison_for_player(
                 matchdata=matchdata,
                 minute_log=minute_log,
@@ -1058,9 +1061,8 @@ def main():
                 playername=playername,
                 season=season_choice,
             )
-
             if fig is not None:
-                left, center, right = st.columns([1, 2, 1])
+                left, center, right = st.columns([1, 3, 1])
                 with center:
                     st.image(fig_to_png_bytes(fig), width=450)
 
@@ -1070,8 +1072,11 @@ def main():
     with tab2:
         st.session_state["active_tab"] = "Player Pizza"
         st.header("Player Pizza")
-
-        if st.session_state["active_tab"] == "Player Pizza":
+    
+        # Prevent crash if no player or position selected
+        if not playername or not position:
+            st.warning("Please select a player and position to generate the Player Pizza.")
+        else:
             pizza_fig = build_player_pizza(
                 player_stats=player_stats,
                 teamlog=teamlog,
@@ -1081,9 +1086,9 @@ def main():
                 season_name=season_choice,
                 minute_threshold=minuteinput,
             )
-
+    
             if pizza_fig is not None:
-                left, center, right = st.columns([1, 2, 1])
+                left, center, right = st.columns([1, 3, 1])
                 with center:
                     img_bytes = fig_to_png_bytes(pizza_fig)
                     st.image(img_bytes, width=450)
@@ -1095,9 +1100,10 @@ def main():
         st.session_state["active_tab"] = "Player Actions"
         st.header("Player Actions")
     
-        # Run only when this tab is active
-        if st.session_state["active_tab"] == "Player Actions":
-    
+        # ❗ PREVENT CRASH WHEN NO PLAYER OR POSITION SELECTED
+        if not playername or not position:
+            st.warning("Please select a player and position to view Player Actions.")
+        else:
             # ---------------------------------------------------------
             # 1. Build event datasets from matchdata
             # ---------------------------------------------------------
@@ -1117,6 +1123,7 @@ def main():
                 (playerrecpass['end_x'].between(1, 99)) &
                 (playerrecpass['end_y'].between(1, 99))
             ]
+    
             # Defensive events
             defeven = [
                 'Tackle','Aerial','Challenge','Interception',
@@ -1136,16 +1143,17 @@ def main():
                 (playerevents.get('assist', 0) == 1) |
                 (playerevents.get('progressive_carry', 'No') == "Yes")
             ].copy()
-            
-            # Remove defensive aerials (same rule as before)
+    
+            # Remove defensive aerials
             attackingevents = attackingevents[
                 ~((attackingevents['typeId'] == 'Aerial') & (attackingevents['x'] < 50))
             ]
-            
+    
             # Remove corners
             attackingevents = attackingevents[
                 ~(attackingevents.get('corner', 0) == 1)
             ]
+    
             # ---------------------------------------------------------
             # 2. Build the full 3-pane Matplotlib figure
             # ---------------------------------------------------------
@@ -1154,15 +1162,15 @@ def main():
                 defensiveevents,
                 playerrecpass,
                 playername,
-                teamname,               # <- ADD THIS
+                teamname,
                 competition_choice,
                 season_choice,
-                teamimage,              # already defined from player pizza section
-                wtaimaged,              # <- ADD THIS
-                BackgroundColor,        # <- ADD THIS
-                PitchColor,             # <- ADD THIS
-                PitchLineColor,         # <- ADD THIS
-                TextColor               # <- ADD THIS
+                teamimage,
+                wtaimaged,
+                BackgroundColor,
+                PitchColor,
+                PitchLineColor,
+                TextColor
             )
     
             # ---------------------------------------------------------
