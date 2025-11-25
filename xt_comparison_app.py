@@ -469,7 +469,7 @@ def build_player_pizza(
             "pass_completion", "prog_passes_per_90",
             "%_passes_are_progressive", "passing_yards_per_90",
             "passing_threat_per_90",
-            "successful_defensive_actions_per_90", "interceptions_per_90",
+            "clearances_per_90", "interceptions_per_90",
             "tackle_win_rate", "def_aerial_win_rate",
             "total_threat_prevented_per_90",
             "threat_value_per_90",
@@ -560,44 +560,44 @@ def build_player_pizza(
     # -----------------------------------------------------------------
     if position in 'CM(2), CM(3) DM(23)':
         params = [
-            "Goals", "xG", "Assists/ShotAssist",
-            "Creativity", "Box Touches",
-            "Pass%", "Final 3rd Pass%", "Prog Pass%",
-            "Prog Carries",
+            "Goals", "xG", "Assists",
+            "Shot Assists", "Touches in Box",
+            "Pass Completion %", "Final 3rd \nPass Completion %", "% Passes are \nProgressive",
+            "Progressive \n Carries",
             "Threat Created",
-            "Def Actions", "Success Def Act",
-            "Interceptions", "Blocks", "Threat Prevented",
+            "Defensive Actions", "Successful \nDefensive Actions",
+            "Interceptions", "Shots Blocked", "Threat Prevented",
             "Player Impact",
         ]
     elif position in ['LB', 'LWB', 'RB', 'RWB']:
         params = [
-            "Key Pass", "xA", "Assists",
-            "xG", "Attacking Success",
-            "Pass%", "Final 3rd Pass%", "Prog Pass%",
-            "Prog Carries",
+            "Shot Assists", "xA", "Assists",
+            "xG", "Successful \nAttacking Actions",
+            "Pass Completion %", "Final 3rd \nPass Completion %", "% Passes are \nProgressive",
+            "Progressive \n Carries",
             "Threat Created",
-            "Def Actions", "Success Def",
-            "Interceptions", "Blocks", "Threat Prevented",
+            "Defensive Actions", "Successful \nDefensive Actions",
+            "Interceptions", "Shots Blocked", "Threat Prevented",
             "Player Impact",
         ]
     elif position in ['CB(2)', 'CB(3)']:
         params = [
-            "Goals", "Key Pass", "xA",
-            "Prog Carries", "Attacking Success",
-            "Pass%", "Prog Pass", "Prog Pass%",
-            "Pass Yards", "Passing Threat",
-            "Success Def", "Interceptions", "Tackle%",
-            "Aerial%", "Threat Prevented",
+            "Goals", "Shot Assists", "xA",
+            "Progressive \nCarries", "Successful \nAttacking Actions",
+            "Pass Completion %", "Progressive \nPasses", "% Passes are \nProgressive",
+            "Passing Yards", "Passing Threat",
+            "Clearances", "Interceptions", "Tackle %",
+            "Aerial %", "Threat Prevented",
             "Player Impact",
         ]
     else:   # CF / LW / RW / AM
         params = [
-            "Shots", "Shot Acc", "xG",
+            "Shots", "Shot Accuracy %", "xG",
             "Goals", "Shot Quality",
-            "Prog Carries", "Carry Yards", "Carry Threat",
-            "Dribbles", "Attacking Success",
-            "Final 3rd Pass%",
-            "Pass Threat", "Key Pass", "xA", "Assists",
+            "Progressive \nCarries", "Carrying Yards", "Carrying Threat",
+            "Dribbles", "Successful \nAttacking Actions",
+            "Final 3rd \nPass Completion %",
+            "Passing Threat", "Shot Assists", "xA", "Assists",
             "Player Impact",
         ]
 
@@ -665,11 +665,11 @@ def build_player_pizza(
     )
 
     # Category headings
-    fig.patches.extend([
-        plt.Rectangle((0.31, 0.9225), 0.025, 0.021, color="red", transform=fig.transFigure),
-        plt.Rectangle((0.462, 0.9225), 0.025, 0.021, color="#63ace3", transform=fig.transFigure),
-        plt.Rectangle((0.632, 0.9225), 0.025, 0.021, color="#2f316a", transform=fig.transFigure),
-    ])
+    #fig.patches.extend([
+    #    plt.Rectangle((0.31, 0.9225), 0.025, 0.021, color="red", transform=fig.transFigure),
+    #    plt.Rectangle((0.462, 0.9225), 0.025, 0.021, color="#63ace3", transform=fig.transFigure),
+    #    plt.Rectangle((0.632, 0.9225), 0.025, 0.021, color="#2f316a", transform=fig.transFigure),
+    #])
 
     # WTA Logo
     add_image(wtaimaged, fig, left=0.465, bottom=0.44, width=0.095, height=0.108)
