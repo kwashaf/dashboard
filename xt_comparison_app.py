@@ -38,13 +38,22 @@ SEASON_MAP = {
 
 # Competition → league prefix
 COMP_MAP = {
-    "Premier League": "ENG",
-    "La Liga":        "SPA",
-    "Bundesliga":     "GER",
-    "Ligue 1":        "FRA",
-    "Serie A":        "ITA",
-    "League of Ireland":    "IRE",
-    "Scottish Premiership": "SCO",
+    "Premier League": "ENG1",
+    "La Liga":        "SPA1",
+    "Bundesliga":     "GER1",
+    "Ligue 1":        "FRA1",
+    "Serie A":        "ITA1",
+    "League of Ireland":    "IRE1",
+    "Scottish Premiership": "SCO1",
+    "Allsvenskan":    "SWE1",
+    "Austrian Bundesliga":    "AUT1",
+    "Pro League":    "BEL1",
+    "Superligaen":    "DEN1",
+    "Liga Portugal":    "POR1",
+    "Brasilerao":    "BRA1",
+    "Championship":    "ENG2",
+    "League One":    "ENG3",
+    "League Two":    "ENG4",
 }
 # -----------------------------------------------------------------------------
 # POSITION NORMALISATION
@@ -889,8 +898,8 @@ def main():
     # --------------------------
     # 3. Build file paths
     # --------------------------
-    parquet_choice = f"{league_prefix}1_{season_fragment}.parquet"
-    excel_choice   = f"{league_prefix}1_{season_fragment}_playerstats_by_position_group.xlsx"
+    parquet_choice = f"{league_prefix}_{season_fragment}.parquet"
+    excel_choice   = f"{league_prefix}_{season_fragment}_playerstats_by_position_group.xlsx"
 
     # --------------------------
     # LOAD DATA
