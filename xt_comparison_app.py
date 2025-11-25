@@ -31,7 +31,6 @@ PitchLineColor = "Black"
 TextColor = "White"
 
 SEASON_MAP = {
-    "2024/25": "2425",
     "2025":    "2025",
     "2025/26": "2526",
 }
