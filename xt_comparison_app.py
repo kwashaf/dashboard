@@ -664,7 +664,7 @@ def build_player_pizza(
     
     fig.text(
         0.05, 0.02,
-        f"Data: Opta & Transfermarkt | Metrics per 90 unless stated otherwise | "
+        f"Data: Opta | Metrics per 90 unless stated otherwise | "
         f"{sample_size} players have played at least {minute_threshold} mins as a {position}",
         size=9, color="#000000"
     )
