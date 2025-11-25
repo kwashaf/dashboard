@@ -405,7 +405,6 @@ def build_player_pizza(
     position_replacements = {
         "LMW": "LW",
         "RMW": "RW",
-        "CF(2)": "CF",
     }
     player_stats["position_group"] = player_stats["position_group"].replace(position_replacements)
 
