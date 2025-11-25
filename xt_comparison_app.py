@@ -1070,9 +1070,9 @@ def main():
             )
     
             if fig is not None:
-                left, center, right = st.columns([1, 2, 1])
+                left, center, right = st.columns([1, 4, 1])
                 with center:
-                    st.image(fig_to_png_bytes(fig), width=450)
+                    st.image(fig_to_png_bytes(fig), width=700)
 
     # ================================================================
     # TAB 2 — Player Pizza
@@ -1096,10 +1096,10 @@ def main():
             )
     
             if pizza_fig is not None:
-                left, center, right = st.columns([1, 3, 1])
+                left, center, right = st.columns([1, 4, 1])
                 with center:
                     img_bytes = fig_to_png_bytes(pizza_fig)
-                    st.image(img_bytes, width=450)
+                    st.image(img_bytes, width=700)
 
 # ================================================================
 # TAB 3 — Player Actions
