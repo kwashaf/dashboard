@@ -1187,6 +1187,6 @@ def main():
             # ---------------------------------------------------------
             left, center, right = st.columns([1, 3, 1])
             with center:
-                st.image(fig_to_png_bytes(fig), width=1350)
+                st.image(fig_to_png_bytes(fig), width=1600)
 if __name__ == "__main__":
     main()
