@@ -1051,7 +1051,7 @@ def main():
         st.header("Pitch Impact Map")
     
         # Button must update session_state instead of triggering immediate render
-        if st.sidebar.button("Generate Pitch Map"):
+        if st.sidebar.button("Generate Visuals"):
             st.session_state["generate_pitch_map"] = True
     
         # Only generate + display inside this tab
@@ -1072,7 +1072,7 @@ def main():
             if fig is not None:
                 left, center, right = st.columns([1, 4, 1])
                 with center:
-                    st.image(fig_to_png_bytes(fig), width=700)
+                    st.image(fig_to_png_bytes(fig), width=500)
 
     # ================================================================
     # TAB 2 — Player Pizza
