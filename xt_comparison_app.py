@@ -642,6 +642,7 @@ def build_player_pizza(
                 lw=1,
             ),
         ),
+        param_location=1.18,     # <-- ADD THIS LINE
     )
 
     # Title & subtitle
