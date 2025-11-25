@@ -562,7 +562,7 @@ def build_player_pizza(
         params = [
             "Goals", "xG", "Assists",
             "Shot Assists", "Touches in Box",
-            "Pass Completion %", "Final 3rd \nPass Completion %", "% Passes are \nProgressive",
+            "Pass Completion \n%", "Final 3rd \nPass Completion \n%", "% Passes are \nProgressive",
             "Progressive \n Carries",
             "Threat Created",
             "Defensive Actions", "Successful \nDefensive Actions",
@@ -573,7 +573,7 @@ def build_player_pizza(
         params = [
             "Shot Assists", "xA", "Assists",
             "xG", "Successful \nAttacking Actions",
-            "Pass Completion %", "Final 3rd \nPass Completion %", "% Passes are \nProgressive",
+            "Pass Completion \n%", "Final 3rd \nPass Completion \n%", "% Passes are \nProgressive",
             "Progressive \n Carries",
             "Threat Created",
             "Defensive Actions", "Successful \nDefensive Actions",
@@ -584,10 +584,10 @@ def build_player_pizza(
         params = [
             "Goals", "Shot Assists", "xA",
             "Progressive \nCarries", "Successful \nAttacking Actions",
-            "Pass Completion %", "Progressive \nPasses", "% Passes are \nProgressive",
+            "Pass Completion \n%", "Progressive \nPasses", "% Passes are \nProgressive",
             "Passing Yards", "Passing Threat",
-            "Clearances", "Interceptions", "Tackle %",
-            "Aerial %", "Threat Prevented",
+            "Clearances", "Interceptions", "Tackle \n%",
+            "Aerial \n%", "Threat Prevented",
             "Player Impact",
         ]
     else:   # CF / LW / RW / AM
@@ -596,7 +596,7 @@ def build_player_pizza(
             "Goals", "Shot Quality",
             "Progressive \nCarries", "Carrying Yards", "Carrying Threat",
             "Dribbles", "Successful \nAttacking Actions",
-            "Final 3rd \nPass Completion %",
+            "Final 3rd \nPass Completion \n%",
             "Passing Threat", "Shot Assists", "xA", "Assists",
             "Player Impact",
         ]
@@ -660,7 +660,7 @@ def build_player_pizza(
     # Credits
     fig.text(
         0.05, 0.02,
-        f"Data: Opta & Transfermarkt | Per 90 metrics | Minimum {minute_threshold} mins in selected position",
+        f"Data from Opta | Metrics per 90 unless stated otherwise | Minimum {minute_threshold} mins in selected position",
         size=9, color="#000000"
     )
 
