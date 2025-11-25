@@ -982,7 +982,7 @@ team_choice = st.sidebar.selectbox(
     index=0,
     key="team_choice"
 )
-player_rows = matchdata.loc(matchdata["playerName"] == playername) & (matchdata["team_name"] == team_choice)]
+player_rows = matchdata.loc[(matchdata["playerName"] == playername) & (matchdata["team_name"] == team_choice)]
     # -------------------------------------------------------
     # TEAM NAME (needed for Pizza & Player Actions)
     # -------------------------------------------------------
