@@ -880,7 +880,7 @@ def main():
     season_choice = st.sidebar.selectbox(
         "Season",
         list(SEASON_MAP.keys()),
-        index=0,
+        index=1,   # selects "2025/26"
     )
     season_fragment = SEASON_MAP[season_choice]
     
