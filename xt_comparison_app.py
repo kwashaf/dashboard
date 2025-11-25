@@ -414,6 +414,7 @@ def build_player_pizza(
     # Minute filtering
     position_data["minutes_played"] = pd.to_numeric(position_data["minutes_played"], errors="coerce")
     position_data = position_data.loc[position_data["minutes_played"] >= minute_threshold]
+    sample_size = len(position_data)
 
     if position_data.empty:
         st.warning("No players meet the minute threshold for this position.")
@@ -474,7 +475,7 @@ def build_player_pizza(
             "total_threat_prevented_per_90",
             "threat_value_per_90",
         ]
-    elif position in ['CF', 'LW', 'RW', 'AM', 'CF(2)']:
+    elif position in ['CF', 'LW', 'RW', 'AM', 'CF(2)', 'AM(2)']:
         cols = [
             "shots_per_90", "shot_accuracy", "xG_per_90",
             "goals_per_90", "shot_quality",
@@ -659,9 +660,12 @@ def build_player_pizza(
     )
 
     # Credits
+    sample_size = len(position_data)
+    
     fig.text(
         0.05, 0.02,
-        f"Data from Opta | Metrics per 90 unless stated otherwise | Minimum {minute_threshold} mins in selected position",
+        f"Data: Opta & Transfermarkt | Metrics per 90 unless stated otherwise | "
+        f"{sample_size} players have played at least {minute_threshold} mins as a {position}",
         size=9, color="#000000"
     )
 
