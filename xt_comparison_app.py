@@ -968,8 +968,21 @@ def main():
         all_players,
         index=all_players.index(default_player),
     )
+# --- NEW: TEAM DROPDOWN for duplicate-name protection ---
+player_teams = (
+    matchdata.loc[matchdata["playerName"] == playername, "team_name"]
+    .dropna()
+    .unique()
+    .tolist()
+)
 
-    player_rows = matchdata.loc[matchdata["playerName"] == playername]
+team_choice = st.sidebar.selectbox(
+    "Select Team",
+    player_teams,
+    index=0,
+    key="team_choice"
+)
+    player_rows = matchdata.loc(matchdata["playerName"] == playername) & (matchdata["team_name"] == team_choice)]
     # -------------------------------------------------------
     # TEAM NAME (needed for Pizza & Player Actions)
     # -------------------------------------------------------
@@ -1120,10 +1133,10 @@ def main():
             # ---------------------------------------------------------
             # 1. Build event datasets from matchdata
             # ---------------------------------------------------------
-            playerevents = matchdata.loc[matchdata["playerName"] == playername].copy()
+            playerevents = matchdata.loc[(matchdata["playerName"] == playername) & (matchdata["team_name"] == team_choice)].copy()
             playerevents = playerevents.loc[playerevents["playing_position"] == position]
     
-            playerrecpass = matchdata.loc[matchdata['pass_recipient'] == playername].copy()
+            playerrecpass = matchdata.loc[(matchdata["playerName"] == playername) & (matchdata["team_name"] == team_choice)].copy()
             playerrecpass = playerrecpass.loc[playerrecpass['pass_recipient_position'] == position]
             playerrecpass = playerrecpass.loc[playerrecpass['outcome'] == "Successful"]
     
