@@ -1049,11 +1049,18 @@ def main():
     with tab1:
         st.session_state["active_tab"] = "Pitch Impact Map"
         st.header("Pitch Impact Map")
-
-    if st.sidebar.button("Generate Pitch Map"):
-        if not playername or not position:
-            st.warning("Please select a player and position first.")
-        else:
+    
+        # Button must update session_state instead of triggering immediate render
+        if st.sidebar.button("Generate Pitch Map"):
+            st.session_state["generate_pitch_map"] = True
+    
+        # Only generate + display inside this tab
+        if st.session_state.get("generate_pitch_map", False):
+    
+            # Prevent plot appearing in other tabs
+            if st.session_state["active_tab"] != "Pitch Impact Map":
+                st.stop()
+    
             fig = plot_xt_comparison_for_player(
                 matchdata=matchdata,
                 minute_log=minute_log,
@@ -1061,8 +1068,9 @@ def main():
                 playername=playername,
                 season=season_choice,
             )
+    
             if fig is not None:
-                left, center, right = st.columns([1, 3, 1])
+                left, center, right = st.columns([1, 2, 1])
                 with center:
                     st.image(fig_to_png_bytes(fig), width=450)
 
