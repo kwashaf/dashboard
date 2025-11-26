@@ -1332,6 +1332,7 @@ def main():
         step=30,
         key="minuteinput",
     )
+
     # -------------------------------------------------------
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
@@ -1359,7 +1360,7 @@ def main():
     # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
     pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
     
-    # Merge with dropdown ordering (position_minutes) to match final table order
+    # Merge with dropdown ordering
     pos_extended = position_minutes.merge(
         pos_extended,
         on=["position_group", "minutes_played"],
@@ -1381,57 +1382,30 @@ def main():
         "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
     })
     
-    # -------------------------------
-    # FORMAT DECIMAL PLACES
-    # -------------------------------
+    # ---------- FORMAT AS STRINGS (RELIABLE IN STREAMLIT) ----------
+    pos_extended["Minutes"] = pos_extended["Minutes"].map(lambda x: f"{x:.1f}")
+    pos_extended["xG"] = pos_extended["xG"].map(lambda x: f"{x:.3f}")
+    pos_extended["Goals"] = pos_extended["Goals"].map(lambda x: f"{int(x)}")
+    pos_extended["xA"] = pos_extended["xA"].map(lambda x: f"{x:.3f}")
+    pos_extended["Assists"] = pos_extended["Assists"].map(lambda x: f"{int(x)}")
     
-    # Minutes → 1 decimal
-    if "Minutes" in pos_extended.columns:
-        pos_extended["Minutes"] = pos_extended["Minutes"].round(1)
+    pos_extended["Pass %"] = pos_extended["Pass %"].map(lambda x: f"{x*100:.2f}%")
+    pos_extended["Aerial %"] = pos_extended["Aerial %"].map(lambda x: f"{x*100:.2f}%")
+    pos_extended["Tackle %"] = pos_extended["Tackle %"].map(lambda x: f"{x*100:.2f}%")
     
-    # xG → 3 decimals
-    if "xG" in pos_extended.columns:
-        pos_extended["xG"] = pos_extended["xG"].round(2)
+    pos_extended["Successful Def. Actions per 90"] = pos_extended[
+        "Successful Def. Actions per 90"
+    ].map(lambda x: f"{x:.2f}")
     
-    # Goals → 0 decimals (integer)
-    if "Goals" in pos_extended.columns:
-        pos_extended["Goals"] = pos_extended["Goals"].astype("Int64")
+    pos_extended["Successful Att. Actions per 90"] = pos_extended[
+        "Successful Att. Actions per 90"
+    ].map(lambda x: f"{x:.2f}")
     
-    # xA → 3 decimals
-    if "xA" in pos_extended.columns:
-        pos_extended["xA"] = pos_extended["xA"].round(2)
-    
-    # Assists → 0 decimals (integer)
-    if "Assists" in pos_extended.columns:
-        pos_extended["Assists"] = pos_extended["Assists"].astype("Int64")
-    
-    # Pass %, Aerial %, Tackle % → scale to 0–100 and 2 decimals
-    for col in ["Pass %", "Aerial %", "Tackle %"]:
-        if col in pos_extended.columns:
-            pos_extended[col] = (pos_extended[col] * 100).round(2)
-    
-    # Successful Def. Actions per 90 → 2 decimals
-    if "Successful Def. Actions per 90" in pos_extended.columns:
-        pos_extended["Successful Def. Actions per 90"] = (
-            pos_extended["Successful Def. Actions per 90"].round(2)
-        )
-    
-    # Successful Att. Actions per 90 → 2 decimals
-    if "Successful Att. Actions per 90" in pos_extended.columns:
-        pos_extended["Successful Att. Actions per 90"] = (
-            pos_extended["Successful Att. Actions per 90"].round(2)
-        )
-    
-    # -------------------------------
-    # CENTRE HEADERS + CELL CONTENTS
-    # -------------------------------
-    styled_table = pos_extended.style.set_properties(**{
-        "text-align": "center"
-    }).set_table_styles([
-        {"selector": "th", "props": [("text-align", "center")]}
-    ])
-    
-    st.dataframe(styled_table, hide_index=True, use_container_width=True)
+    # ---------- HTML-CENTERED TABLE (ALWAYS WORKS) ----------
+    st.markdown(
+        pos_extended.to_html(index=False, justify="center"),
+        unsafe_allow_html=True
+    )
 
     # --------------------------
     # TABS — Pitch Map + Player Pizza
