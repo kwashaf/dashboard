@@ -288,16 +288,19 @@ def plot_profile_polygon_with_ball(
     ax.fill(poly[:,0], poly[:,1], color=polygon_color, alpha=polygon_alpha, zorder=3)
     ax.plot(poly[:,0], poly[:,1], linewidth=2, color=polygon_color, alpha=1.0, zorder=3)
 
-    # -------- CENTROID / FOOTBALL --------
-    w = np.nan_to_num(scores_arr)
+    # -------- CENTROID / FOOTBALL (ALWAYS INSIDE POLYGON) --------
+    w = np.nan_to_num(scores_arr, nan=0.0)
+
+    # emphasise larger scores, but work on the *scaled* points
     if centroid_emphasis != 1.0:
         w = w ** centroid_emphasis
+
     if w.sum() > 0:
         w /= w.sum()
-        cx, cy = (w[:, None] * base_pts).sum(axis=0)
+        # use poly_pts (scaled by scores), not base_pts
+        cx, cy = (w[:, None] * poly_pts).sum(axis=0)
     else:
         cx, cy = 0.0, 0.0
-
     if ball_img is not None:
         try:
             imagebox = OffsetImage(ball_img, zoom=football_zoom)
