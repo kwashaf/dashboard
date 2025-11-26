@@ -1360,7 +1360,7 @@ def main():
     # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
     pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
     
-    # Merge with dropdown ordering
+    # Merge with dropdown ordering to keep row order consistent
     pos_extended = position_minutes.merge(
         pos_extended,
         on=["position_group", "minutes_played"],
@@ -1382,7 +1382,7 @@ def main():
         "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
     })
     
-    # ---------- FORMAT AS STRINGS (RELIABLE IN STREAMLIT) ----------
+    # ---------- FORMAT AS STRINGS ----------
     pos_extended["Minutes"] = pos_extended["Minutes"].map(lambda x: f"{x:.1f}")
     pos_extended["xG"] = pos_extended["xG"].map(lambda x: f"{x:.3f}")
     pos_extended["Goals"] = pos_extended["Goals"].map(lambda x: f"{int(x)}")
@@ -1393,31 +1393,39 @@ def main():
     pos_extended["Aerial %"] = pos_extended["Aerial %"].map(lambda x: f"{x*100:.2f}%")
     pos_extended["Tackle %"] = pos_extended["Tackle %"].map(lambda x: f"{x*100:.2f}%")
     
-    pos_extended["Successful Def. Actions per 90"] = pos_extended[
-        "Successful Def. Actions per 90"
-    ].map(lambda x: f"{x:.2f}")
+    pos_extended["Successful Def. Actions per 90"] = (
+        pos_extended["Successful Def. Actions per 90"].map(lambda x: f"{x:.2f}")
+    )
+    pos_extended["Successful Att. Actions per 90"] = (
+        pos_extended["Successful Att. Actions per 90"].map(lambda x: f"{x:.2f}")
+    )
     
-    pos_extended["Successful Att. Actions per 90"] = pos_extended[
-        "Successful Att. Actions per 90"
-    ].map(lambda x: f"{x:.2f}")
-    
-    # ---------- HTML + CSS CENTERED TABLE ----------
-    table_html = pos_extended.to_html(index=False)
+    # ---------- HTML + CSS CENTERED TABLE (WORKING VERSION) ----------
+    table_html = pos_extended.to_html(index=False, classes="playerinfo-table")
     
     center_css = """
     <style>
-    table {
-        margin-left: auto;
-        margin-right: auto;
+    .playerinfo-table {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 95% !important;
+        border-collapse: collapse;
     }
-    th, td {
+    .playerinfo-table th {
         text-align: center !important;
+        padding: 8px;
+        font-weight: 600;
+        border-bottom: 1px solid #444;
+    }
+    .playerinfo-table td {
+        text-align: center !important;
+        padding: 8px;
+        border-bottom: 1px solid #333;
     }
     </style>
     """
     
-    st.markdown(center_css + table_html, unsafe_allow_html=True)
-
+    st.components.v1.html(center_css + table_html, height=300, scrolling=True)
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
