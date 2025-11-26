@@ -347,7 +347,7 @@ def plot_profile_polygon_with_ball(
 
     # Title
     ax.set_title(
-        f"{player_name} – Position Profile",
+        f"{player_name} – {position} Position Profile",
         pad=title_pad,
         color=title_color,
         size=18,
