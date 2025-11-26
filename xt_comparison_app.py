@@ -1344,7 +1344,8 @@ def main():
     # -------------------------------------------------------
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
-    st.markdown("#### Player Info (positions with negligible minutes not shown)*")
+    st.markdown(f"#### {playername} — Player Info *(positions with negligible minutes not shown)*")
+
     
     # Aggregate extended stats per position
     pos_extended = (
@@ -1392,9 +1393,9 @@ def main():
     
     # ---------- FORMAT AS STRINGS ----------
     pos_extended["Minutes"] = pos_extended["Minutes"].map(lambda x: f"{x:.1f}")
-    pos_extended["xG"] = pos_extended["xG"].map(lambda x: f"{x:.3f}")
+    pos_extended["xG"] = pos_extended["xG"].map(lambda x: f"{x:.2f}")
     pos_extended["Goals"] = pos_extended["Goals"].map(lambda x: f"{int(x)}")
-    pos_extended["xA"] = pos_extended["xA"].map(lambda x: f"{x:.3f}")
+    pos_extended["xA"] = pos_extended["xA"].map(lambda x: f"{x:.2f}")
     pos_extended["Assists"] = pos_extended["Assists"].map(lambda x: f"{int(x)}")
     
     pos_extended["Pass %"] = pos_extended["Pass %"].map(lambda x: f"{x*100:.2f}%")
