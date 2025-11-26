@@ -990,6 +990,8 @@ def create_player_actions_figure(
         np.linspace(0, 100, 100),
         np.linspace(0, 100, 100)
     )
+    radius = 15
+
     # ---------------------------------------------------------
     # ATTACKING EVENTS (PITCH 1)
     # ---------------------------------------------------------
@@ -998,6 +1000,7 @@ def create_player_actions_figure(
     if len(points_pass) > 3:
         kde_pass = gaussian_kde(points_pass.T)
         x_grid, y_grid = np.meshgrid(np.linspace(0, 100, 100), np.linspace(0, 100, 100))
+        
         density_pass = kde_pass(np.vstack([x_grid.ravel(), y_grid.ravel()]))
 
         max_density_index_pass = np.argmax(density_pass)
