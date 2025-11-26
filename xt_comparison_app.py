@@ -1326,7 +1326,7 @@ def main():
     # -------------------------------------------------------
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
-    st.markdown("#### {playername} - Player Info (positions with negligible minutes not shown)")
+    st.markdown(f"#### {playername} | {team_choice} - Player Info (positions with negligible minutes not shown)")
     
     # Aggregate extended stats per position
     pos_extended = (
