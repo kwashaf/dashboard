@@ -1401,11 +1401,22 @@ def main():
         "Successful Att. Actions per 90"
     ].map(lambda x: f"{x:.2f}")
     
-    # ---------- HTML-CENTERED TABLE (ALWAYS WORKS) ----------
-    st.markdown(
-        pos_extended.to_html(index=False, justify="center"),
-        unsafe_allow_html=True
-    )
+    # ---------- HTML + CSS CENTERED TABLE ----------
+    table_html = pos_extended.to_html(index=False)
+    
+    center_css = """
+    <style>
+    table {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    th, td {
+        text-align: center !important;
+    }
+    </style>
+    """
+    
+    st.markdown(center_css + table_html, unsafe_allow_html=True)
 
     # --------------------------
     # TABS — Pitch Map + Player Pizza
