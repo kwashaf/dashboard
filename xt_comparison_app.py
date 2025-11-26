@@ -1410,26 +1410,28 @@ def main():
         margin-right: auto;
         width: 96%;
         border-collapse: collapse;
-        color: #f2f2f2 !important;      /* Light grey text for dark mode */
-        font-size: 15px;
+        font-family: var(--font, "Inter", sans-serif); /* Match Streamlit font */
+        color: var(--text-color, #f8f9fa) !important;   /* Match dark theme text */
+        font-size: 0.95rem;                             /* Match body text size */
     }
     
     .playerinfo-table th {
         text-align: center !important;
-        padding: 8px;
-        border-bottom: 1px solid #555;
-        background-color: rgba(255,255,255,0.05);
-        color: #ffffff !important;      /* Header text white */
+        padding: 10px 8px;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255,255,255,0.15);
+        background-color: rgba(255,255,255,0.06);
+        color: var(--text-color, #ffffff) !important;
     }
     
     .playerinfo-table td {
         text-align: center !important;
-        padding: 8px;
-        border-bottom: 1px solid #333;
+        padding: 8px 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     
     .playerinfo-table tr:hover td {
-        background-color: rgba(255,255,255,0.08); /* Hover highlight */
+        background-color: rgba(255,255,255,0.10); 
     }
     </style>
     """
