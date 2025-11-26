@@ -218,6 +218,7 @@ def plot_profile_polygon_with_ball(
     labels,
     scores,
     player_name="Player",
+    position="",
     levels=(20,40,60,80,100),
     centroid_emphasis=1.5,
     ball_img=None,
@@ -1584,6 +1585,7 @@ def main():
             labels=labels,
             scores=scores,
             player_name=playername,
+            position=position,   # <-- NEW
             centroid_emphasis=1.8,
             ball_img=ball_img,
             football_zoom=0.06,
