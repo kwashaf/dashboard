@@ -1347,38 +1347,34 @@ def main():
     # -------------------------------------------------------
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
-    st.markdown(f"#### {playername} — Player Info *(positions with negligible minutes not shown)*")
+    st.markdown(
+        f"#### {playername} — Player Info *(positions with negligible minutes not shown)*"
+    )
     
-    # DEBUG
+    # Optional debug – shows all rows for this player (all teams)
     debug = player_stats[
         player_stats["player_name"] == playername
     ][["player_name", "team_name", "minutes_played"]]
-    
     st.write("DEBUG — Player rows found:", debug)
     
+    # -------------------------------------------------------
+    # 1) FILTER BY PLAYER + TEAM
+    # -------------------------------------------------------
+    player_team_df = player_stats[
+        (player_stats["player_name"] == playername)
+        & (player_stats["team_name"] == teamname)
+    ].copy()
+    
+    if player_team_df.empty:
+        st.info("No data available for this player and team selection.")
+        st.stop()
     
     # -------------------------------------------------------
-    # 1) BUILD position_minutes CORRECTLY (must include team!)
-    # -------------------------------------------------------
-    position_minutes = (
-        player_stats[
-            (player_stats["player_name"] == playername) &
-            (player_stats["team_name"] == teamname)
-        ]
-        .groupby(["team_name", "position_group"], as_index=False)
-        .agg({"minutes_played": "sum"})
-    )
-    
-    
-    # -------------------------------------------------------
-    # 2) AGGREGATE EXTENDED STATS PER POSITION (team-filtered)
+    # 2) AGGREGATE EXTENDED STATS PER POSITION (TEAM-SPECIFIC)
     # -------------------------------------------------------
     pos_extended = (
-        player_stats[
-            (player_stats["player_name"] == playername) &
-            (player_stats["team_name"] == teamname)
-        ]
-        .groupby(["team_name", "position_group"], as_index=False)
+        player_team_df
+        .groupby("position_group", as_index=False)
         .agg({
             "minutes_played": "sum",
             "xG": "sum",
@@ -1396,19 +1392,16 @@ def main():
     # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
     pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
     
+    # If nothing left after filtering, bail cleanly
+    if pos_extended.empty:
+        st.info("No positions with at least 25 minutes for this player and team.")
+        st.stop()
+    
+    # Sort by minutes desc to match dropdown ordering
+    pos_extended = pos_extended.sort_values("minutes_played", ascending=False)
     
     # -------------------------------------------------------
-    # 3) MERGE — NOW CORRECTLY USING team_name TOO
-    # -------------------------------------------------------
-    pos_extended = position_minutes.merge(
-        pos_extended,
-        on=["team_name", "position_group", "minutes_played"],
-        how="left",
-    )
-    
-    
-    # -------------------------------------------------------
-    # 4) RENAME COLUMNS
+    # 3) RENAME COLUMNS
     # -------------------------------------------------------
     pos_extended = pos_extended.rename(columns={
         "position_group": "Position",
@@ -1424,21 +1417,28 @@ def main():
         "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
     })
     
-    # Drop team column from final table (no need to display)
-    pos_extended = pos_extended.drop(columns=["team_name"], errors="ignore")
-    
-    
     # -------------------------------------------------------
-    # 5) SAFE FORMATTING (NO NaN CRASHES)
+    # 4) SAFE FORMATTING (HANDLE NaNs)
     # -------------------------------------------------------
     def fmt(x, f):
+        import pandas as pd
         return f(x) if pd.notna(x) else ""
     
-    pos_extended["Minutes"] = pos_extended["Minutes"].apply(lambda x: fmt(x, lambda v: f"{v:.1f}"))
-    pos_extended["xG"] = pos_extended["xG"].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
-    pos_extended["Goals"] = pos_extended["Goals"].apply(lambda x: fmt(x, lambda v: f"{int(v)}"))
-    pos_extended["xA"] = pos_extended["xA"].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
-    pos_extended["Assists"] = pos_extended["Assists"].apply(lambda x: fmt(x, lambda v: f"{int(v)}"))
+    pos_extended["Minutes"] = pos_extended["Minutes"].apply(
+        lambda x: fmt(x, lambda v: f"{v:.1f}")
+    )
+    pos_extended["xG"] = pos_extended["xG"].apply(
+        lambda x: fmt(x, lambda v: f"{v:.2f}")
+    )
+    pos_extended["Goals"] = pos_extended["Goals"].apply(
+        lambda x: fmt(x, lambda v: f"{int(v)}")
+    )
+    pos_extended["xA"] = pos_extended["xA"].apply(
+        lambda x: fmt(x, lambda v: f"{v:.2f}")
+    )
+    pos_extended["Assists"] = pos_extended["Assists"].apply(
+        lambda x: fmt(x, lambda v: f"{int(v)}")
+    )
     
     for col in ["Pass %", "Aerial %", "Tackle %"]:
         pos_extended[col] = pos_extended[col].apply(
@@ -1453,9 +1453,8 @@ def main():
         "Successful Att. Actions per 90"
     ].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
     
-    
     # -------------------------------------------------------
-    # 6) HTML + CSS CENTERED TABLE (DARK MODE SAFE)
+    # 5) HTML + CSS CENTERED TABLE (DARK MODE SAFE)
     # -------------------------------------------------------
     table_html = pos_extended.to_html(index=False, classes="playerinfo-table")
     
@@ -1467,10 +1466,9 @@ def main():
         width: 96%;
         border-collapse: collapse;
         font-family: var(--font, "Inter", sans-serif);
-        color: var(--text-color, #f8f9fa) !important; 
+        color: var(--text-color, #f8f9fa) !important;
         font-size: 0.95rem;
     }
-    
     .playerinfo-table th {
         text-align: center !important;
         padding: 10px 8px;
@@ -1479,15 +1477,13 @@ def main():
         background-color: rgba(255,255,255,0.06);
         color: var(--text-color, #ffffff) !important;
     }
-    
     .playerinfo-table td {
         text-align: center !important;
         padding: 8px 8px;
         border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    
     .playerinfo-table tr:hover td {
-        background-color: rgba(255,255,255,0.10); 
+        background-color: rgba(255,255,255,0.10);
     }
     </style>
     """
