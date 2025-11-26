@@ -1277,14 +1277,36 @@ def main():
             stream=True,
         ).raw
     )
-    positions = (
-        player_rows["playing_position"]
-        .dropna()
-        .astype(str)
-        .unique()
-        .tolist()
+    # -------------------------------------------------------
+    # BUILD POSITIONS SORTED BY MINUTES PLAYED
+    # -------------------------------------------------------
+    position_minutes = (
+        player_stats[player_stats["player_name"] == playername]
+        .groupby("position_group")["minutes_played"]
+        .sum()
+        .reset_index()
     )
-    positions = sorted(positions)
+    
+    # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
+    position_minutes = position_minutes[position_minutes["minutes_played"] >= 25]
+    
+    # Sort by minutes descending
+    position_minutes = position_minutes.sort_values("minutes_played", ascending=False)
+    
+    positions = position_minutes["position_group"].astype(str).tolist()
+    
+    if not positions:
+        st.error(f"No positions with at least 25 minutes played for {playername}.")
+        return
+    
+    default_position = positions[0]
+
+    
+    if not positions:
+        st.error(f"No positions found for {playername}.")
+        return
+    
+    default_position = positions[0]  # highest minutes first
 
     if not positions:
         st.error(f"No positions found for {playername}.")
@@ -1311,6 +1333,111 @@ def main():
         key="minuteinput",
     )
 
+    # -------------------------------------------------------
+    # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
+    # -------------------------------------------------------
+    st.markdown("#### Player Info (positions with negligible minutes not shown)*")
+    
+    # Aggregate extended stats per position
+    pos_extended = (
+        player_stats[player_stats["player_name"] == playername]
+        .groupby("position_group")
+        .agg({
+            "minutes_played": "sum",
+            "xG": "sum",
+            "goals": "sum",
+            "xA": "sum",
+            "assists": "sum",
+            "pass_completion": "mean",
+            "aerial_win_rate": "mean",
+            "tackle_win_rate": "mean",
+            "successful_defensive_actions_per_90": "mean",
+            "successful_attacking_actions_per_90": "mean",
+        })
+        .reset_index()
+    )
+    
+    # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
+    pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
+    
+    # Merge with dropdown ordering
+    pos_extended = position_minutes.merge(
+        pos_extended,
+        on=["position_group", "minutes_played"],
+        how="left",
+    )
+    
+    # Rename columns
+    pos_extended = pos_extended.rename(columns={
+        "position_group": "Position",
+        "minutes_played": "Minutes",
+        "xG": "xG",
+        "goals": "Goals",
+        "xA": "xA",
+        "assists": "Assists",
+        "pass_completion": "Pass %",
+        "aerial_win_rate": "Aerial %",
+        "tackle_win_rate": "Tackle %",
+        "successful_defensive_actions_per_90": "Successful Def. Actions per 90",
+        "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
+    })
+    
+    # ---------- FORMAT AS STRINGS ----------
+    pos_extended["Minutes"] = pos_extended["Minutes"].map(lambda x: f"{x:.1f}")
+    pos_extended["xG"] = pos_extended["xG"].map(lambda x: f"{x:.3f}")
+    pos_extended["Goals"] = pos_extended["Goals"].map(lambda x: f"{int(x)}")
+    pos_extended["xA"] = pos_extended["xA"].map(lambda x: f"{x:.3f}")
+    pos_extended["Assists"] = pos_extended["Assists"].map(lambda x: f"{int(x)}")
+    
+    pos_extended["Pass %"] = pos_extended["Pass %"].map(lambda x: f"{x*100:.2f}%")
+    pos_extended["Aerial %"] = pos_extended["Aerial %"].map(lambda x: f"{x*100:.2f}%")
+    pos_extended["Tackle %"] = pos_extended["Tackle %"].map(lambda x: f"{x*100:.2f}%")
+    
+    pos_extended["Successful Def. Actions per 90"] = (
+        pos_extended["Successful Def. Actions per 90"].map(lambda x: f"{x:.2f}")
+    )
+    pos_extended["Successful Att. Actions per 90"] = (
+        pos_extended["Successful Att. Actions per 90"].map(lambda x: f"{x:.2f}")
+    )
+    
+    # ---------- HTML + CSS CENTERED TABLE (DARK MODE SAFE) ----------
+    table_html = pos_extended.to_html(index=False, classes="playerinfo-table")
+    
+    css = """
+    <style>
+    .playerinfo-table {
+        margin-left: auto;
+        margin-right: auto;
+        width: 96%;
+        border-collapse: collapse;
+        font-family: var(--font, "Inter", sans-serif); /* Match Streamlit font */
+        color: var(--text-color, #f8f9fa) !important;   /* Match dark theme text */
+        font-size: 0.95rem;                             /* Match body text size */
+    }
+    
+    .playerinfo-table th {
+        text-align: center !important;
+        padding: 10px 8px;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255,255,255,0.15);
+        background-color: rgba(255,255,255,0.06);
+        color: var(--text-color, #ffffff) !important;
+    }
+    
+    .playerinfo-table td {
+        text-align: center !important;
+        padding: 8px 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    
+    .playerinfo-table tr:hover td {
+        background-color: rgba(255,255,255,0.10); 
+    }
+    </style>
+    """
+    
+    # auto-height instead of fixed height
+    st.components.v1.html(css + table_html, scrolling=False)
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
