@@ -1283,7 +1283,7 @@ def main():
     position_minutes = (
         player_stats[
             (player_stats["player_name"] == playername) &
-            (player_stats["team_name"] == teamname)
+            (player_stats["team_name"] == team_choice)
         ]
         .groupby("position_group", as_index=False)["minutes_played"]
         .sum()
