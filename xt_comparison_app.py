@@ -1287,11 +1287,20 @@ def main():
         .reset_index()
     )
     
-    # Order by minutes DESC
+    # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
+    position_minutes = position_minutes[position_minutes["minutes_played"] >= 25]
+    
+    # Sort by minutes descending
     position_minutes = position_minutes.sort_values("minutes_played", ascending=False)
     
-    # Extract the list in sorted order
     positions = position_minutes["position_group"].astype(str).tolist()
+    
+    if not positions:
+        st.error(f"No positions with at least 25 minutes played for {playername}.")
+        return
+    
+    default_position = positions[0]
+
     
     if not positions:
         st.error(f"No positions found for {playername}.")
@@ -1327,8 +1336,8 @@ def main():
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
     st.markdown("### Player Info")
-    
-    # Aggregate relevant stats per position for the selected player
+
+    # Aggregate extended stats per position
     pos_extended = (
         player_stats[player_stats["player_name"] == playername]
         .groupby("position_group")
@@ -1347,14 +1356,17 @@ def main():
         .reset_index()
     )
     
-    # Merge with (already sorted) position_minutes to preserve ordering
+    # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
+    pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
+    
+    # Merge with dropdown ordering to match table order
     pos_extended = position_minutes.merge(
         pos_extended,
         on=["position_group", "minutes_played"],
         how="left",
     )
     
-    # Rename columns for display
+    # Rename columns
     pos_extended = pos_extended.rename(columns={
         "position_group": "Position",
         "minutes_played": "Minutes",
@@ -1369,7 +1381,7 @@ def main():
         "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
     })
     
-    # Optional formatting (cleaner percentages)
+    # Format %
     if "Pass %" in pos_extended.columns:
         pos_extended["Pass %"] = (pos_extended["Pass %"] * 100).round(1)
     if "Aerial %" in pos_extended.columns:
@@ -1377,7 +1389,16 @@ def main():
     if "Tackle %" in pos_extended.columns:
         pos_extended["Tackle %"] = (pos_extended["Tackle %"] * 100).round(1)
     
-    st.dataframe(pos_extended, hide_index=True, use_container_width=True)
+    # -------------------------------
+    # CENTRE HEADERS + CELL CONTENTS
+    # -------------------------------
+    styled_table = pos_extended.style.set_properties(**{
+        "text-align": "center"
+    }).set_table_styles([
+        {"selector": "th", "props": [("text-align", "center")]}
+    ])
+    
+    st.dataframe(styled_table, hide_index=True, use_container_width=True)
 
     # --------------------------
     # TABS — Pitch Map + Player Pizza
