@@ -990,8 +990,6 @@ def create_player_actions_figure(
         np.linspace(0, 100, 100),
         np.linspace(0, 100, 100)
     )
-    radius = 15
-
     # ---------------------------------------------------------
     # ATTACKING EVENTS (PITCH 1)
     # ---------------------------------------------------------
@@ -1000,7 +998,6 @@ def create_player_actions_figure(
     if len(points_pass) > 3:
         kde_pass = gaussian_kde(points_pass.T)
         x_grid, y_grid = np.meshgrid(np.linspace(0, 100, 100), np.linspace(0, 100, 100))
-        
         density_pass = kde_pass(np.vstack([x_grid.ravel(), y_grid.ravel()]))
 
         max_density_index_pass = np.argmax(density_pass)
@@ -1174,15 +1171,7 @@ def main():
         matchdata = load_match_data(parquet_choice)           # match event data
         player_stats = load_minute_log(excel_choice)          # full stats file (Excel)
         teamlog = load_teamlog()                              # teamcode lookup file
-    # -------------------------------------------------------
-    # APPLY GLOBAL POSITION NORMALISATION
-    # -------------------------------------------------------
-    if "position_group" in player_stats.columns:
-        player_stats["position_group"] = (
-            player_stats["position_group"]
-            .astype(str)
-            .apply(normalize_position)
-        )
+
     # --------------------------
     # Normalise positions in matchdata
     # --------------------------
@@ -1288,36 +1277,14 @@ def main():
             stream=True,
         ).raw
     )
-    # -------------------------------------------------------
-    # BUILD POSITIONS SORTED BY MINUTES PLAYED
-    # -------------------------------------------------------
-    position_minutes = (
-        player_stats[player_stats["player_name"] == playername]
-        .groupby("position_group")["minutes_played"]
-        .sum()
-        .reset_index()
+    positions = (
+        player_rows["playing_position"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
     )
-    
-    # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
-    position_minutes = position_minutes[position_minutes["minutes_played"] >= 25]
-    
-    # Sort by minutes descending
-    position_minutes = position_minutes.sort_values("minutes_played", ascending=False)
-    
-    positions = position_minutes["position_group"].astype(str).tolist()
-    
-    if not positions:
-        st.error(f"No positions with at least 25 minutes played for {playername}.")
-        return
-    
-    default_position = positions[0]
-
-    
-    if not positions:
-        st.error(f"No positions found for {playername}.")
-        return
-    
-    default_position = positions[0]  # highest minutes first
+    positions = sorted(positions)
 
     if not positions:
         st.error(f"No positions found for {playername}.")
@@ -1344,154 +1311,6 @@ def main():
         key="minuteinput",
     )
 
-    # -------------------------------------------------------
-    # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
-    # -------------------------------------------------------
-    st.markdown(
-        f"#### {playername} — Player Info *(positions with negligible minutes not shown)*"
-    )
-    
-    # Optional debug – shows all rows for this player (all teams)
-    debug = player_stats[
-        player_stats["player_name"] == playername
-    ][["player_name", "team_name", "minutes_played"]]
-    st.write("DEBUG — Player rows found:", debug)
-    
-    # -------------------------------------------------------
-    # 1) FILTER BY PLAYER + TEAM
-    # -------------------------------------------------------
-    player_team_df = player_stats[
-        (player_stats["player_name"] == playername)
-        & (player_stats["team_name"] == teamname)
-    ].copy()
-    
-    if player_team_df.empty:
-        st.info("No data available for this player and team selection.")
-        st.stop()
-    
-    # -------------------------------------------------------
-    # 2) AGGREGATE EXTENDED STATS PER POSITION (TEAM-SPECIFIC)
-    # -------------------------------------------------------
-    pos_extended = (
-        player_team_df
-        .groupby("position_group", as_index=False)
-        .agg({
-            "minutes_played": "sum",
-            "xG": "sum",
-            "goals": "sum",
-            "xA": "sum",
-            "assists": "sum",
-            "pass_completion": "mean",
-            "aerial_win_rate": "mean",
-            "tackle_win_rate": "mean",
-            "successful_defensive_actions_per_90": "mean",
-            "successful_attacking_actions_per_90": "mean",
-        })
-    )
-    
-    # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
-    pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
-    
-    # If nothing left after filtering, bail cleanly
-    if pos_extended.empty:
-        st.info("No positions with at least 25 minutes for this player and team.")
-        st.stop()
-    
-    # Sort by minutes desc to match dropdown ordering
-    pos_extended = pos_extended.sort_values("minutes_played", ascending=False)
-    
-    # -------------------------------------------------------
-    # 3) RENAME COLUMNS
-    # -------------------------------------------------------
-    pos_extended = pos_extended.rename(columns={
-        "position_group": "Position",
-        "minutes_played": "Minutes",
-        "xG": "xG",
-        "goals": "Goals",
-        "xA": "xA",
-        "assists": "Assists",
-        "pass_completion": "Pass %",
-        "aerial_win_rate": "Aerial %",
-        "tackle_win_rate": "Tackle %",
-        "successful_defensive_actions_per_90": "Successful Def. Actions per 90",
-        "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
-    })
-    
-    # -------------------------------------------------------
-    # 4) SAFE FORMATTING (HANDLE NaNs)
-    # -------------------------------------------------------
-    def fmt(x, f):
-        import pandas as pd
-        return f(x) if pd.notna(x) else ""
-    
-    pos_extended["Minutes"] = pos_extended["Minutes"].apply(
-        lambda x: fmt(x, lambda v: f"{v:.1f}")
-    )
-    pos_extended["xG"] = pos_extended["xG"].apply(
-        lambda x: fmt(x, lambda v: f"{v:.2f}")
-    )
-    pos_extended["Goals"] = pos_extended["Goals"].apply(
-        lambda x: fmt(x, lambda v: f"{int(v)}")
-    )
-    pos_extended["xA"] = pos_extended["xA"].apply(
-        lambda x: fmt(x, lambda v: f"{v:.2f}")
-    )
-    pos_extended["Assists"] = pos_extended["Assists"].apply(
-        lambda x: fmt(x, lambda v: f"{int(v)}")
-    )
-    
-    for col in ["Pass %", "Aerial %", "Tackle %"]:
-        pos_extended[col] = pos_extended[col].apply(
-            lambda x: fmt(x, lambda v: f"{v * 100:.2f}%")
-        )
-    
-    pos_extended["Successful Def. Actions per 90"] = pos_extended[
-        "Successful Def. Actions per 90"
-    ].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
-    
-    pos_extended["Successful Att. Actions per 90"] = pos_extended[
-        "Successful Att. Actions per 90"
-    ].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
-    
-    # -------------------------------------------------------
-    # 5) HTML + CSS CENTERED TABLE (DARK MODE SAFE)
-    # -------------------------------------------------------
-    table_html = pos_extended.to_html(index=False, classes="playerinfo-table")
-    
-    css = """
-    <style>
-    .playerinfo-table {
-        margin-left: auto;
-        margin-right: auto;
-        width: 96%;
-        border-collapse: collapse;
-        font-family: var(--font, "Inter", sans-serif);
-        color: var(--text-color, #f8f9fa) !important;
-        font-size: 0.95rem;
-    }
-    .playerinfo-table th {
-        text-align: center !important;
-        padding: 10px 8px;
-        font-weight: 600;
-        border-bottom: 1px solid rgba(255,255,255,0.15);
-        background-color: rgba(255,255,255,0.06);
-        color: var(--text-color, #ffffff) !important;
-    }
-    .playerinfo-table td {
-        text-align: center !important;
-        padding: 8px 8px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .playerinfo-table tr:hover td {
-        background-color: rgba(255,255,255,0.10);
-    }
-    </style>
-    """
-    
-    st.markdown(css + table_html, unsafe_allow_html=True)
-    
-    # auto-height instead of fixed height
-    st.components.v1.html(css + table_html, scrolling=False)
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
