@@ -1277,14 +1277,27 @@ def main():
             stream=True,
         ).raw
     )
-    positions = (
-        player_rows["playing_position"]
-        .dropna()
-        .astype(str)
-        .unique()
-        .tolist()
+    # -------------------------------------------------------
+    # BUILD POSITIONS SORTED BY MINUTES PLAYED
+    # -------------------------------------------------------
+    position_minutes = (
+        player_stats[player_stats["player_name"] == playername]
+        .groupby("position_group")["minutes_played"]
+        .sum()
+        .reset_index()
     )
-    positions = sorted(positions)
+    
+    # Order by minutes DESC
+    position_minutes = position_minutes.sort_values("minutes_played", ascending=False)
+    
+    # Extract the list in sorted order
+    positions = position_minutes["position_group"].astype(str).tolist()
+    
+    if not positions:
+        st.error(f"No positions found for {playername}.")
+        return
+    
+    default_position = positions[0]  # highest minutes first
 
     if not positions:
         st.error(f"No positions found for {playername}.")
@@ -1310,6 +1323,61 @@ def main():
         step=30,
         key="minuteinput",
     )
+    # -------------------------------------------------------
+    # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
+    # -------------------------------------------------------
+    st.markdown("### Player Info")
+    
+    # Aggregate relevant stats per position for the selected player
+    pos_extended = (
+        player_stats[player_stats["player_name"] == playername]
+        .groupby("position_group")
+        .agg({
+            "minutes_played": "sum",
+            "xG": "sum",
+            "goals": "sum",
+            "xA": "sum",
+            "assists": "sum",
+            "pass_completion": "mean",
+            "aerial_win_rate": "mean",
+            "tackle_win_rate": "mean",
+            "successful_defensive_actions_per_90": "mean",
+            "successful_attacking_actions_per_90": "mean",
+        })
+        .reset_index()
+    )
+    
+    # Merge with (already sorted) position_minutes to preserve ordering
+    pos_extended = position_minutes.merge(
+        pos_extended,
+        on=["position_group", "minutes_played"],
+        how="left",
+    )
+    
+    # Rename columns for display
+    pos_extended = pos_extended.rename(columns={
+        "position_group": "Position",
+        "minutes_played": "Minutes",
+        "xG": "xG",
+        "goals": "Goals",
+        "xA": "xA",
+        "assists": "Assists",
+        "pass_completion": "Pass %",
+        "aerial_win_rate": "Aerial %",
+        "tackle_win_rate": "Tackle %",
+        "successful_defensive_actions_per_90": "Successful Def. Actions per 90",
+        "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
+    })
+    
+    # Optional formatting (cleaner percentages)
+    if "Pass %" in pos_extended.columns:
+        pos_extended["Pass %"] = (pos_extended["Pass %"] * 100).round(1)
+    if "Aerial %" in pos_extended.columns:
+        pos_extended["Aerial %"] = (pos_extended["Aerial %"] * 100).round(1)
+    if "Tackle %" in pos_extended.columns:
+        pos_extended["Tackle %"] = (pos_extended["Tackle %"] * 100).round(1)
+    
+    st.dataframe(pos_extended, hide_index=True, use_container_width=True)
 
     # --------------------------
     # TABS — Pitch Map + Player Pizza
