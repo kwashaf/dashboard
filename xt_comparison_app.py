@@ -1349,7 +1349,11 @@ def main():
     # -------------------------------------------------------
     st.markdown(f"#### {playername} — Player Info *(positions with negligible minutes not shown)*")
 
+    debug = player_stats[
+    player_stats["player_name"] == playername
+    ][["player_name", "team_name", "minutes_played"]]
     
+    st.write("DEBUG — Player rows found:", debug)
     # Aggregate extended stats per position
     pos_extended = (
         player_stats[
