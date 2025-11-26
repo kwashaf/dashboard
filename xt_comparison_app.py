@@ -1555,17 +1555,23 @@ def main():
         player_row = player_row.iloc[0]
 
         # 4) Build list of (profile_name, score)
+        # --- PRESERVE EXCEL ORDER ---
         profile_scores = []
-        for prof_name in profiles_for_grp:
-            scol = safe_score_col(prof_name)
-            if scol in gdf.columns:
-                val = player_row.get(scol, np.nan)
+        for prof_name in profiles_for_grp.keys():   # order preserved from Excel
+            s_col = safe_score_col(prof_name)
+            if s_col in gdf.columns:
+                val = player_row.get(s_col, np.nan)
                 if pd.notna(val):
                     profile_scores.append((prof_name, float(val)))
-
-        # keep top 5 if more exist
-        profile_scores.sort(key=lambda x:x[1], reverse=True)
-        profile_scores = profile_scores[:5]
+        
+        # filter to 4 or 5 profiles in the ORIGINAL Excel order
+        if len(profile_scores) >= 5:
+            profile_scores = profile_scores[:5]
+        elif len(profile_scores) == 4:
+            pass  # diamond OK
+        else:
+            st.warning("Not enough profile data to plot (need at least 4).")
+            st.stop()
 
         if len(profile_scores) < 4:
             st.warning("Not enough profile data to plot (need at least 4 profiles).")
