@@ -1360,7 +1360,7 @@ def main():
     # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
     pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
     
-    # Merge with dropdown ordering to keep row order consistent
+    # Merge with dropdown ordering
     pos_extended = position_minutes.merge(
         pos_extended,
         on=["position_group", "minutes_played"],
@@ -1400,32 +1400,42 @@ def main():
         pos_extended["Successful Att. Actions per 90"].map(lambda x: f"{x:.2f}")
     )
     
-    # ---------- HTML + CSS CENTERED TABLE (WORKING VERSION) ----------
+    # ---------- HTML + CSS CENTERED TABLE (DARK MODE SAFE) ----------
     table_html = pos_extended.to_html(index=False, classes="playerinfo-table")
     
-    center_css = """
+    css = """
     <style>
     .playerinfo-table {
-        margin-left: auto !important;
-        margin-right: auto !important;
-        width: 95% !important;
+        margin-left: auto;
+        margin-right: auto;
+        width: 96%;
         border-collapse: collapse;
+        color: #f2f2f2 !important;      /* Light grey text for dark mode */
+        font-size: 15px;
     }
+    
     .playerinfo-table th {
         text-align: center !important;
         padding: 8px;
-        font-weight: 600;
-        border-bottom: 1px solid #444;
+        border-bottom: 1px solid #555;
+        background-color: rgba(255,255,255,0.05);
+        color: #ffffff !important;      /* Header text white */
     }
+    
     .playerinfo-table td {
         text-align: center !important;
         padding: 8px;
         border-bottom: 1px solid #333;
     }
+    
+    .playerinfo-table tr:hover td {
+        background-color: rgba(255,255,255,0.08); /* Hover highlight */
+    }
     </style>
     """
     
-    st.components.v1.html(center_css + table_html, height=300, scrolling=True)
+    # auto-height instead of fixed height
+    st.components.v1.html(css + table_html, scrolling=False)
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
