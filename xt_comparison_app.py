@@ -102,6 +102,194 @@ def fig_to_png_bytes(fig):
     buf.seek(0)
     return buf
 
+# -----------------------------------------------------------------------------
+# PLAYER PROFILING CONFIG
+# -----------------------------------------------------------------------------
+PROFILE_EXCEL_URL = (
+    "https://github.com/WTAnalysis/dashboard/raw/main/"
+    "player%20profiles%20streamlit.xlsx"
+)
+FOOTBALL_IMG_URL = (
+    "https://github.com/WTAnalysis/dashboard/raw/main/football.png"
+)
+
+CLOSE_BAND = 20
+LOW_THRESHOLD = 60
+# MIN_MINUTES will no longer be used — profiling now uses user input 'minuteinput'
+
+# =====================================================================
+#      PROFILING HELPER FUNCTIONS (PASTE ALL OF THESE TOGETHER)
+# =====================================================================
+def _norm(s):
+    return str(s).strip().lower()
+
+def extract_metric_pairs_adjacent(row: pd.Series, columns: list) -> dict:
+    pairs = {}
+    for i, col in enumerate(columns):
+        if str(col).strip().lower().startswith("metric"):
+            metric = row.get(col, None)
+            wcol = columns[i + 1] if i + 1 < len(columns) else None
+            weight = row.get(wcol, None) if wcol is not None else None
+            if pd.isna(metric) or metric is None or str(metric).strip() == "":
+                continue
+            if (weight is None) or pd.isna(weight) or str(weight).strip() == "":
+                continue
+            pairs[str(metric).strip()] = float(weight)
+    return pairs
+
+def build_profiles_by_position(profiles_df: pd.DataFrame,
+                               pos_col="Position",
+                               name_col="Description") -> dict:
+    profs = {}
+    cols = list(profiles_df.columns)
+    for _, r in profiles_df.iterrows():
+        pos = str(r.get(pos_col, "")).strip()
+        name = str(r.get(name_col, "")).strip()
+        if not pos or not name:
+            continue
+        weights = extract_metric_pairs_adjacent(r, cols)
+        if not weights:
+            continue
+        if pos not in profs:
+            profs[pos] = {}
+        profs[pos][name] = weights
+    return profs
+
+def candidates_for(metric: str):
+    cands = set()
+    base = metric.strip()
+    cands.update({base, base.replace("_"," "), base.replace(" ","_"),
+                  base.replace("_per_90"," per 90"), base.replace(" per 90","_per_90"),
+                  base.replace("%","pct"), base.replace("pct","%"),
+                  base.replace("-","_"), base.replace("_","-")})
+    cands |= {c.lower() for c in cands}
+    return list(cands)
+
+def strict_percentile(series: pd.Series) -> pd.Series:
+    s = pd.to_numeric(series, errors="coerce")
+    valid = s.dropna()
+    out = pd.Series(index=s.index, dtype=float)
+    if len(valid)==0:
+        return out
+    if valid.nunique()<=1:
+        out.loc[valid.index] = 100.0
+        return out
+    ranks = valid.rank(method="average")
+    out.loc[valid.index] = ((ranks-1)/(len(valid)-1))*100
+    return out
+
+def weighted_score_from_pcts(row: pd.Series, metric_to_pctcol: dict, weights: dict):
+    vals, wts = [], []
+    for metric,w in weights.items():
+        pctcol = metric_to_pctcol.get(metric)
+        if pctcol is None:
+            continue
+        v = row.get(pctcol, np.nan)
+        if pd.notna(v):
+            vals.append(v); wts.append(w)
+    if not wts:
+        return np.nan
+    return float(np.clip(np.average(vals,weights=wts),0,100))
+
+def safe_score_col(profile_name: str) -> str:
+    import re
+    return "score_" + re.sub(r'[^A-Za-z0-9_]+','_',profile_name).strip("_")
+
+def nice(col_name:str)->str:
+    return col_name.replace("score_","").replace("_"," ")
+
+POSITION_ALIAS = {}
+
+@st.cache_data
+def load_profile_definitions():
+    resp = requests.get(PROFILE_EXCEL_URL)
+    resp.raise_for_status()
+    return pd.read_excel(io.BytesIO(resp.content))
+
+@st.cache_data
+def load_football_image_array():
+    resp = requests.get(FOOTBALL_IMG_URL)
+    resp.raise_for_status()
+    return plt.imread(io.BytesIO(resp.content))
+
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
+def plot_pentagon_profile_with_ball(
+    labels,
+    scores,
+    player_name="Player",
+    levels=(20,40,60,80,100),
+    centroid_emphasis=1.5,
+    ball_img=None,
+    football_zoom=0.08,
+    fig_bg="#381d54",
+    poly_fill="#f5f6fc",
+    polygon_color="#381d54",
+    polygon_alpha=0.5,
+    grid_color="black",
+    grid_alpha=0.15,
+    label_color="white",
+    title_color="white",
+    title_pad=28,
+):
+    if len(labels)!=5 or len(scores)!=5:
+        raise ValueError("Need exactly 5 labels and 5 scores")
+
+    angles = np.deg2rad(np.linspace(90, 90-360, 5, endpoint=False))
+    base_pts = np.column_stack([np.cos(angles), np.sin(angles)])
+
+    fig, ax = plt.subplots(figsize=(6,6))
+    fig.patch.set_facecolor(fig_bg)
+    ax.set_facecolor(fig_bg)
+
+    ax.fill(base_pts[:,0], base_pts[:,1], color=poly_fill, zorder=0)
+
+    for lv in sorted(levels):
+        f = lv/100
+        ring = base_pts*f
+        ring = np.vstack([ring, ring[0]])
+        ax.plot(ring[:,0], ring[:,1], color=grid_color, alpha=grid_alpha)
+
+    for x,y in base_pts:
+        ax.plot([0,x],[0,y], color=grid_color, alpha=0.25)
+
+    outer = np.vstack([base_pts, base_pts[0]])
+    ax.plot(outer[:,0], outer[:,1], color=grid_color, linewidth=2)
+
+    scores_arr = np.clip(np.array(scores),0,100)/100
+    poly_pts = base_pts*scores_arr[:,None]
+    poly = np.vstack([poly_pts, poly_pts[0]])
+    ax.fill(poly[:,0], poly[:,1], color=polygon_color, alpha=polygon_alpha)
+    ax.plot(poly[:,0], poly[:,1], color=polygon_color)
+
+    w = np.nan_to_num(scores_arr)
+    if centroid_emphasis!=1:
+        w = w**centroid_emphasis
+    w = w / w.sum() if w.sum()>0 else w
+    cx, cy = (w[:,None]*base_pts).sum(axis=0)
+
+    if ball_img is not None:
+        imagebox = OffsetImage(ball_img, zoom=football_zoom)
+        ab = AnnotationBbox(imagebox, (cx,cy), frameon=False, zorder=5)
+        ax.add_artist(ab)
+    else:
+        ax.plot(cx,cy,"o",color="white",markersize=10)
+
+    offset = 1.18
+    for (x,y),label,score in zip(base_pts,labels,scores):
+        ha,va="center","center"
+        if abs(y)<0.1: ha = "left" if x>0 else "right"
+        elif y>0:      va = "bottom"
+        else:          va = "top"
+        ax.text(x*offset, y*offset, f"{label}\n({score:.1f})", ha=ha, va=va, color=label_color)
+
+    ax.set_title(f"{player_name} – Position Profile", color=title_color, pad=title_pad)
+    ax.set_xlim(-1.3,1.3); ax.set_ylim(-1.3,1.3)
+    ax.set_aspect("equal"); ax.axis("off")
+    return fig
+
+
+
 TEAMLOG_FILE = "teamlog.csv"
 
 @st.cache_data
@@ -1055,8 +1243,9 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3 = st.tabs(["Pitch Impact Map", "Player Pizza", "Player Actions"])
-
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling"]
+    )
     # Init session state
     if "active_tab" not in st.session_state:
         st.session_state["active_tab"] = "Pitch Impact Map"
@@ -1205,5 +1394,134 @@ def main():
             left, center, right = st.columns([1, 3, 1])
             with center:
                 st.image(fig_to_png_bytes(fig), width=1600)
+    # ================================================================
+    # TAB 4 — Player Profiling
+    # ================================================================
+    with tab4:
+        st.session_state["active_tab"] = "Player Profiling"
+        st.header("Player Profiling")
+
+        if not playername or not position:
+            st.warning("Please select a player and position.")
+            st.stop()
+
+        # 1) Load files
+        profiles_df = load_profile_definitions()
+        ball_img = load_football_image_array()
+
+        profiles_by_pos = build_profiles_by_position(profiles_df)
+
+        # 2) Prepare playerlist from player_stats
+        playerlist = player_stats.copy()
+        playerlist["minutes_played"] = pd.to_numeric(playerlist["minutes_played"], errors="coerce")
+
+        # ❗ USE USER-SELECTED THRESHOLD
+        base = playerlist.loc[playerlist["minutes_played"] >= minuteinput].copy()
+        if base.empty:
+            st.warning("No players meet the minute threshold for profiling.")
+            st.stop()
+
+        grp = position
+
+        gdf = base.loc[
+            base["position_group"].astype(str).str.lower() == _norm(grp)
+        ].copy()
+
+        if gdf.empty:
+            st.warning(f"No players found for position {grp} with threshold {minuteinput} mins.")
+            st.stop()
+
+        pos_key = POSITION_ALIAS.get(grp, grp)
+        matches = [k for k in profiles_by_pos if _norm(k)==_norm(pos_key)]
+        if not matches:
+            st.warning(f"No profiles defined for position '{grp}' in Excel file.")
+            st.stop()
+
+        prof_key = matches[0]
+        profiles_for_grp = profiles_by_pos[prof_key]
+
+        player_cols_lut = {c.lower():c for c in gdf.columns}
+        metric_to_col = {}
+
+        for prof_name,weights in profiles_for_grp.items():
+            for metric in weights:
+                if metric in metric_to_col:
+                    continue
+                for cand in candidates_for(metric):
+                    if cand in player_cols_lut:
+                        metric_to_col[metric] = player_cols_lut[cand]
+                        break
+
+        if not metric_to_col:
+            st.warning("No metrics matched column names in stats.")
+            st.stop()
+
+        metric_to_pctcol = {}
+        for metric, col in metric_to_col.items():
+            pctcol = f"{col}__pct"
+            metric_to_pctcol[metric]=pctcol
+            gdf[pctcol] = strict_percentile(gdf[col])
+
+        score_cols=[]
+        for prof_name,weights in profiles_for_grp.items():
+            scol = safe_score_col(prof_name)
+            gdf[scol] = gdf.apply(lambda r: weighted_score_from_pcts(r, metric_to_pctcol, weights), axis=1)
+            gdf[scol] = strict_percentile(gdf[scol]).round(1)
+            score_cols.append(scol)
+
+        # 3) Get selected player's row
+        player_row = gdf.loc[
+            (gdf["player_name"]==playername) &
+            (gdf["team_name"]==team_choice)
+        ]
+
+        if player_row.empty:
+            player_row = gdf.loc[gdf["player_name"]==playername]
+
+        if player_row.empty:
+            st.warning("No profiling data for this player.")
+            st.stop()
+
+        player_row = player_row.iloc[0]
+
+        # 4) Build list of (profile_name, score)
+        profile_scores = []
+        for prof_name in profiles_for_grp:
+            scol = safe_score_col(prof_name)
+            if scol in gdf.columns:
+                val = player_row.get(scol, np.nan)
+                if pd.notna(val):
+                    profile_scores.append((prof_name, float(val)))
+
+        # keep top 5 if more exist
+        profile_scores.sort(key=lambda x:x[1], reverse=True)
+        profile_scores = profile_scores[:5]
+
+        if len(profile_scores) < 5:
+            st.warning("Fewer than 5 profiles available — cannot plot pentagon.")
+            st.stop()
+
+        labels = [p[0] for p in profile_scores]
+        scores = [p[1] for p in profile_scores]
+
+        fig = plot_pentagon_profile_with_ball(
+            labels,
+            scores,
+            player_name=playername,
+            centroid_emphasis=1.8,
+            ball_img=ball_img,
+            football_zoom=0.06,
+            fig_bg=BackgroundColor,
+            poly_fill=PitchColor,
+            polygon_color=BackgroundColor,
+            polygon_alpha=0.5,
+            grid_color="black",
+            label_color="white",
+            title_color="white",
+        )
+
+        left,center,right = st.columns([1,3,1])
+        with center:
+            st.image(fig_to_png_bytes(fig), width=600)
 if __name__ == "__main__":
     main()
