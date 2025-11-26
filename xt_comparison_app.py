@@ -1348,19 +1348,37 @@ def main():
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
     st.markdown(f"#### {playername} — Player Info *(positions with negligible minutes not shown)*")
-
+    
+    # DEBUG
     debug = player_stats[
-    player_stats["player_name"] == playername
+        player_stats["player_name"] == playername
     ][["player_name", "team_name", "minutes_played"]]
     
     st.write("DEBUG — Player rows found:", debug)
-    # Aggregate extended stats per position
+    
+    
+    # -------------------------------------------------------
+    # 1) BUILD position_minutes CORRECTLY (must include team!)
+    # -------------------------------------------------------
+    position_minutes = (
+        player_stats[
+            (player_stats["player_name"] == playername) &
+            (player_stats["team_name"] == teamname)
+        ]
+        .groupby(["team_name", "position_group"], as_index=False)
+        .agg({"minutes_played": "sum"})
+    )
+    
+    
+    # -------------------------------------------------------
+    # 2) AGGREGATE EXTENDED STATS PER POSITION (team-filtered)
+    # -------------------------------------------------------
     pos_extended = (
         player_stats[
             (player_stats["player_name"] == playername) &
             (player_stats["team_name"] == teamname)
         ]
-        .groupby("position_group")
+        .groupby(["team_name", "position_group"], as_index=False)
         .agg({
             "minutes_played": "sum",
             "xG": "sum",
@@ -1373,20 +1391,25 @@ def main():
             "successful_defensive_actions_per_90": "mean",
             "successful_attacking_actions_per_90": "mean",
         })
-        .reset_index()
     )
     
     # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
     pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
     
-    # Merge with dropdown ordering
+    
+    # -------------------------------------------------------
+    # 3) MERGE — NOW CORRECTLY USING team_name TOO
+    # -------------------------------------------------------
     pos_extended = position_minutes.merge(
         pos_extended,
-        on=["position_group", "minutes_played"],
+        on=["team_name", "position_group", "minutes_played"],
         how="left",
     )
     
-    # Rename columns
+    
+    # -------------------------------------------------------
+    # 4) RENAME COLUMNS
+    # -------------------------------------------------------
     pos_extended = pos_extended.rename(columns={
         "position_group": "Position",
         "minutes_played": "Minutes",
@@ -1401,25 +1424,39 @@ def main():
         "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
     })
     
-    # ---------- FORMAT AS STRINGS ----------
-    pos_extended["Minutes"] = pos_extended["Minutes"].map(lambda x: f"{x:.1f}")
-    pos_extended["xG"] = pos_extended["xG"].map(lambda x: f"{x:.2f}")
-    pos_extended["Goals"] = pos_extended["Goals"].map(lambda x: f"{int(x)}")
-    pos_extended["xA"] = pos_extended["xA"].map(lambda x: f"{x:.2f}")
-    pos_extended["Assists"] = pos_extended["Assists"].map(lambda x: f"{int(x)}")
+    # Drop team column from final table (no need to display)
+    pos_extended = pos_extended.drop(columns=["team_name"], errors="ignore")
     
-    pos_extended["Pass %"] = pos_extended["Pass %"].map(lambda x: f"{x*100:.2f}%")
-    pos_extended["Aerial %"] = pos_extended["Aerial %"].map(lambda x: f"{x*100:.2f}%")
-    pos_extended["Tackle %"] = pos_extended["Tackle %"].map(lambda x: f"{x*100:.2f}%")
     
-    pos_extended["Successful Def. Actions per 90"] = (
-        pos_extended["Successful Def. Actions per 90"].map(lambda x: f"{x:.2f}")
-    )
-    pos_extended["Successful Att. Actions per 90"] = (
-        pos_extended["Successful Att. Actions per 90"].map(lambda x: f"{x:.2f}")
-    )
+    # -------------------------------------------------------
+    # 5) SAFE FORMATTING (NO NaN CRASHES)
+    # -------------------------------------------------------
+    def fmt(x, f):
+        return f(x) if pd.notna(x) else ""
     
-    # ---------- HTML + CSS CENTERED TABLE (DARK MODE SAFE) ----------
+    pos_extended["Minutes"] = pos_extended["Minutes"].apply(lambda x: fmt(x, lambda v: f"{v:.1f}"))
+    pos_extended["xG"] = pos_extended["xG"].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
+    pos_extended["Goals"] = pos_extended["Goals"].apply(lambda x: fmt(x, lambda v: f"{int(v)}"))
+    pos_extended["xA"] = pos_extended["xA"].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
+    pos_extended["Assists"] = pos_extended["Assists"].apply(lambda x: fmt(x, lambda v: f"{int(v)}"))
+    
+    for col in ["Pass %", "Aerial %", "Tackle %"]:
+        pos_extended[col] = pos_extended[col].apply(
+            lambda x: fmt(x, lambda v: f"{v * 100:.2f}%")
+        )
+    
+    pos_extended["Successful Def. Actions per 90"] = pos_extended[
+        "Successful Def. Actions per 90"
+    ].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
+    
+    pos_extended["Successful Att. Actions per 90"] = pos_extended[
+        "Successful Att. Actions per 90"
+    ].apply(lambda x: fmt(x, lambda v: f"{v:.2f}"))
+    
+    
+    # -------------------------------------------------------
+    # 6) HTML + CSS CENTERED TABLE (DARK MODE SAFE)
+    # -------------------------------------------------------
     table_html = pos_extended.to_html(index=False, classes="playerinfo-table")
     
     css = """
@@ -1429,9 +1466,9 @@ def main():
         margin-right: auto;
         width: 96%;
         border-collapse: collapse;
-        font-family: var(--font, "Inter", sans-serif); /* Match Streamlit font */
-        color: var(--text-color, #f8f9fa) !important;   /* Match dark theme text */
-        font-size: 0.95rem;                             /* Match body text size */
+        font-family: var(--font, "Inter", sans-serif);
+        color: var(--text-color, #f8f9fa) !important; 
+        font-size: 0.95rem;
     }
     
     .playerinfo-table th {
@@ -1454,6 +1491,8 @@ def main():
     }
     </style>
     """
+    
+    st.markdown(css + table_html, unsafe_allow_html=True)
     
     # auto-height instead of fixed height
     st.components.v1.html(css + table_html, scrolling=False)
