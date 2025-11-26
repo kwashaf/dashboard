@@ -1281,10 +1281,12 @@ def main():
     # BUILD POSITIONS SORTED BY MINUTES PLAYED
     # -------------------------------------------------------
     position_minutes = (
-        player_stats[player_stats["player_name"] == playername]
-        .groupby("position_group")["minutes_played"]
+        player_stats[
+            (player_stats["player_name"] == playername) &
+            (player_stats["team_name"] == teamname)
+        ]
+        .groupby("position_group", as_index=False)["minutes_played"]
         .sum()
-        .reset_index()
     )
     
     # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
@@ -1296,34 +1298,23 @@ def main():
     positions = position_minutes["position_group"].astype(str).tolist()
     
     if not positions:
-        st.error(f"No positions with at least 25 minutes played for {playername}.")
+        st.error(f"No positions with at least 25 minutes played for {playername} at {teamname}.")
         return
     
-    default_position = positions[0]
-
-    
-    if not positions:
-        st.error(f"No positions found for {playername}.")
-        return
-    
-    default_position = positions[0]  # highest minutes first
-
-    if not positions:
-        st.error(f"No positions found for {playername}.")
-        return
-
+    # -------------------------------------------------------
+    # Determine default position
+    # -------------------------------------------------------
     preferred_positions = ["LB", "LCB(2)", "RCB(2)", "RB"]
     default_position = next((p for p in preferred_positions if p in positions), positions[0])
-
+    
+    # Sidebar selector
     position = st.sidebar.selectbox(
         "Select position",
         positions,
-        index=positions.index(default_position),
+        index=positions.index(default_position) if default_position in positions else 0,
     )
-
-    # --------------------------
-    # NEW — Minute threshold selector
-    # --------------------------
+    
+    # Minute threshold selector
     minuteinput = st.sidebar.number_input(
         "Minute Threshold",
         min_value=0,
@@ -1332,7 +1323,6 @@ def main():
         step=30,
         key="minuteinput",
     )
-
     # -------------------------------------------------------
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
