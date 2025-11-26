@@ -214,7 +214,7 @@ def load_football_image_array():
 
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
-def plot_pentagon_profile_with_ball(
+def plot_profile_polygon_with_ball(
     labels,
     scores,
     player_name="Player",
@@ -232,62 +232,129 @@ def plot_pentagon_profile_with_ball(
     title_color="white",
     title_pad=28,
 ):
-    if len(labels)!=5 or len(scores)!=5:
-        raise ValueError("Need exactly 5 labels and 5 scores")
+    """
+    Automatically draws a diamond (4 profiles) or pentagon (5 profiles)
+    depending on number of labels/scores.
+    """
 
-    angles = np.deg2rad(np.linspace(90, 90-360, 5, endpoint=False))
-    base_pts = np.column_stack([np.cos(angles), np.sin(angles)])
+    n = len(labels)
+    if n not in (4, 5):
+        raise ValueError("This visual supports ONLY 4 or 5 profiles.")
 
-    fig, ax = plt.subplots(figsize=(6,6))
+    scores_arr = np.clip(np.array(scores, dtype=float), 0, 100) / 100.0
+
+    # -------- SHAPE DEFINITION --------
+    if n == 5:
+        # Pentagon (top → clockwise)
+        angles = np.deg2rad(np.linspace(90, 90 - 360, 5, endpoint=False))
+        base_pts = np.column_stack([np.cos(angles), np.sin(angles)])
+
+    elif n == 4:
+        # Diamond (top → right → bottom → left)
+        base_pts = np.array([
+            [0,  1],   # top
+            [1,  0],   # right
+            [0, -1],   # bottom
+            [-1, 0],   # left
+        ], dtype=float)
+
+    # -------- FIGURE --------
+    fig, ax = plt.subplots(figsize=(6, 6))
     fig.patch.set_facecolor(fig_bg)
     ax.set_facecolor(fig_bg)
 
+    # Fill inside
     ax.fill(base_pts[:,0], base_pts[:,1], color=poly_fill, zorder=0)
 
+    # -------- GRID --------
     for lv in sorted(levels):
-        f = lv/100
-        ring = base_pts*f
+        f = lv / 100.0
+        ring = base_pts * f
         ring = np.vstack([ring, ring[0]])
-        ax.plot(ring[:,0], ring[:,1], color=grid_color, alpha=grid_alpha)
+        ax.plot(ring[:,0], ring[:,1], color=grid_color, alpha=grid_alpha, zorder=1)
 
-    for x,y in base_pts:
-        ax.plot([0,x],[0,y], color=grid_color, alpha=0.25)
+    # Spokes
+    for x, y in base_pts:
+        ax.plot([0, x], [0, y], color=grid_color, alpha=0.25, zorder=1)
 
+    # Outer boundary
     outer = np.vstack([base_pts, base_pts[0]])
-    ax.plot(outer[:,0], outer[:,1], color=grid_color, linewidth=2)
+    ax.plot(outer[:,0], outer[:,1], linewidth=2, color=grid_color, alpha=0.9, zorder=2)
 
-    scores_arr = np.clip(np.array(scores),0,100)/100
-    poly_pts = base_pts*scores_arr[:,None]
+    # -------- SCORE POLYGON --------
+    poly_pts = base_pts * scores_arr[:, None]
     poly = np.vstack([poly_pts, poly_pts[0]])
-    ax.fill(poly[:,0], poly[:,1], color=polygon_color, alpha=polygon_alpha)
-    ax.plot(poly[:,0], poly[:,1], color=polygon_color)
 
+    ax.fill(poly[:,0], poly[:,1], color=polygon_color, alpha=polygon_alpha, zorder=3)
+    ax.plot(poly[:,0], poly[:,1], linewidth=2, color=polygon_color, alpha=1.0, zorder=3)
+
+    # -------- CENTROID / FOOTBALL --------
     w = np.nan_to_num(scores_arr)
-    if centroid_emphasis!=1:
-        w = w**centroid_emphasis
-    w = w / w.sum() if w.sum()>0 else w
-    cx, cy = (w[:,None]*base_pts).sum(axis=0)
+    if centroid_emphasis != 1.0:
+        w = w ** centroid_emphasis
+    if w.sum() > 0:
+        w /= w.sum()
+        cx, cy = (w[:, None] * base_pts).sum(axis=0)
+    else:
+        cx, cy = 0.0, 0.0
 
     if ball_img is not None:
-        imagebox = OffsetImage(ball_img, zoom=football_zoom)
-        ab = AnnotationBbox(imagebox, (cx,cy), frameon=False, zorder=5)
-        ax.add_artist(ab)
+        try:
+            imagebox = OffsetImage(ball_img, zoom=football_zoom)
+            ab = AnnotationBbox(imagebox, (cx, cy), frameon=False, zorder=5)
+            ax.add_artist(ab)
+        except:
+            ax.plot(cx, cy, "o", color="white", markersize=12, zorder=5)
     else:
-        ax.plot(cx,cy,"o",color="white",markersize=10)
+        ax.plot(cx, cy, "o", color="white", markersize=12, zorder=5)
 
-    offset = 1.18
-    for (x,y),label,score in zip(base_pts,labels,scores):
-        ha,va="center","center"
-        if abs(y)<0.1: ha = "left" if x>0 else "right"
-        elif y>0:      va = "bottom"
-        else:          va = "top"
-        ax.text(x*offset, y*offset, f"{label}\n({score:.1f})", ha=ha, va=va, color=label_color)
+    # -------- LABELS --------
+    label_offset = 1.12
+    for (x, y), label, score in zip(base_pts, labels, scores):
+        ha = "center"
+        va = "center"
 
-    ax.set_title(f"{player_name} – Position Profile", color=title_color, pad=title_pad)
-    ax.set_xlim(-1.3,1.3); ax.set_ylim(-1.3,1.3)
-    ax.set_aspect("equal"); ax.axis("off")
+        if n == 4:
+            # Diamond-specific label positioning (matching your screenshot)
+            if (x, y) == (0, 1):      # top
+                va = "bottom"
+            elif (x, y) == (1, 0):    # right
+                ha = "left"
+            elif (x, y) == (0, -1):   # bottom
+                va = "top"
+            elif (x, y) == (-1, 0):   # left
+                ha = "right"
+        else:
+            # Generic nice positioning for pentagon
+            if abs(y) < 0.15:
+                ha = "left" if x > 0 else "right"
+            elif y > 0:
+                va = "bottom"
+            else:
+                va = "top"
+
+        ax.text(
+            x * label_offset,
+            y * label_offset,
+            f"{label}\n({score:.1f})",
+            ha=ha,
+            va=va,
+            color=label_color,
+        )
+
+    # Title
+    ax.set_title(
+        f"{player_name} – Position Profile",
+        pad=title_pad,
+        color=title_color,
+        size=18,
+    )
+
+    ax.set_xlim(-1.3, 1.3)
+    ax.set_ylim(-1.3, 1.3)
+    ax.set_aspect("equal")
+    ax.axis("off")
     return fig
-
 
 
 TEAMLOG_FILE = "teamlog.csv"
@@ -1497,16 +1564,16 @@ def main():
         profile_scores.sort(key=lambda x:x[1], reverse=True)
         profile_scores = profile_scores[:5]
 
-        if len(profile_scores) < 5:
-            st.warning("Fewer than 5 profiles available — cannot plot pentagon.")
+        if len(profile_scores) < 4:
+            st.warning("Not enough profile data to plot (need at least 4 profiles).")
             st.stop()
 
         labels = [p[0] for p in profile_scores]
         scores = [p[1] for p in profile_scores]
 
-        fig = plot_pentagon_profile_with_ball(
-            labels,
-            scores,
+        fig = plot_profile_polygon_with_ball(
+            labels=labels,
+            scores=scores,
             player_name=playername,
             centroid_emphasis=1.8,
             ball_img=ball_img,
