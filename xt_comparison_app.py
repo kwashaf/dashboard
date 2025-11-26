@@ -1336,7 +1336,7 @@ def main():
     # DISPLAY PLAYER POSITION MINUTES + STATS SUMMARY
     # -------------------------------------------------------
     st.markdown("### Player Info")
-
+    
     # Aggregate extended stats per position
     pos_extended = (
         player_stats[player_stats["player_name"] == playername]
@@ -1359,7 +1359,7 @@ def main():
     # FILTER OUT POSITIONS WITH UNDER 25 MINUTES
     pos_extended = pos_extended[pos_extended["minutes_played"] >= 25]
     
-    # Merge with dropdown ordering to match table order
+    # Merge with dropdown ordering (position_minutes) to match final table order
     pos_extended = position_minutes.merge(
         pos_extended,
         on=["position_group", "minutes_played"],
@@ -1381,13 +1381,46 @@ def main():
         "successful_attacking_actions_per_90": "Successful Att. Actions per 90",
     })
     
-    # Format %
-    if "Pass %" in pos_extended.columns:
-        pos_extended["Pass %"] = (pos_extended["Pass %"] * 100).round(1)
-    if "Aerial %" in pos_extended.columns:
-        pos_extended["Aerial %"] = (pos_extended["Aerial %"] * 100).round(1)
-    if "Tackle %" in pos_extended.columns:
-        pos_extended["Tackle %"] = (pos_extended["Tackle %"] * 100).round(1)
+    # -------------------------------
+    # FORMAT DECIMAL PLACES
+    # -------------------------------
+    
+    # Minutes → 1 decimal
+    if "Minutes" in pos_extended.columns:
+        pos_extended["Minutes"] = pos_extended["Minutes"].round(1)
+    
+    # xG → 3 decimals
+    if "xG" in pos_extended.columns:
+        pos_extended["xG"] = pos_extended["xG"].round(2)
+    
+    # Goals → 0 decimals (integer)
+    if "Goals" in pos_extended.columns:
+        pos_extended["Goals"] = pos_extended["Goals"].astype("Int64")
+    
+    # xA → 3 decimals
+    if "xA" in pos_extended.columns:
+        pos_extended["xA"] = pos_extended["xA"].round(2)
+    
+    # Assists → 0 decimals (integer)
+    if "Assists" in pos_extended.columns:
+        pos_extended["Assists"] = pos_extended["Assists"].astype("Int64")
+    
+    # Pass %, Aerial %, Tackle % → scale to 0–100 and 2 decimals
+    for col in ["Pass %", "Aerial %", "Tackle %"]:
+        if col in pos_extended.columns:
+            pos_extended[col] = (pos_extended[col] * 100).round(2)
+    
+    # Successful Def. Actions per 90 → 2 decimals
+    if "Successful Def. Actions per 90" in pos_extended.columns:
+        pos_extended["Successful Def. Actions per 90"] = (
+            pos_extended["Successful Def. Actions per 90"].round(2)
+        )
+    
+    # Successful Att. Actions per 90 → 2 decimals
+    if "Successful Att. Actions per 90" in pos_extended.columns:
+        pos_extended["Successful Att. Actions per 90"] = (
+            pos_extended["Successful Att. Actions per 90"].round(2)
+        )
     
     # -------------------------------
     # CENTRE HEADERS + CELL CONTENTS
