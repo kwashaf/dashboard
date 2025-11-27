@@ -1867,7 +1867,7 @@ def main():
         ax.text(99, 67, f'Shots on Target: {shots_on_target}',               ha='left', fontsize=9, color='black')
 
         ax.text(99, 65.5,   f'Shots Accuracy: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
-        ax.text(99, 63, f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
+        ax.text(99, 64, f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
         ax.text(50, 101,  'Data from Opta - league matches only - larger circles shows higher xG chance',
                 ha='center', fontsize=8, color='black')
     
