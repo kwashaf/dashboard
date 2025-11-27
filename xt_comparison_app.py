@@ -1171,7 +1171,12 @@ def main():
         matchdata = load_match_data(parquet_choice)           # match event data
         player_stats = load_minute_log(excel_choice)          # full stats file (Excel)
         teamlog = load_teamlog()                              # teamcode lookup file
-
+    if "position_group" in player_stats.columns:
+        player_stats["position_group"] = (
+            player_stats["position_group"]
+            .astype(str)
+            .apply(normalize_position)
+        )
     # --------------------------
     # Normalise positions in matchdata
     # --------------------------
