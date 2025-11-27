@@ -1747,7 +1747,7 @@ def main():
         shotmaptar2 = playershots.loc[playershots['typeId']=='Attempt Saved']
         shotmaptar2 = shotmaptar2.loc[shotmaptar2['isBlocked']=='FALSE']
 
-        shotmapbk2 = shotmapbk2.loc[playershots['typeId']=='Attempt Saved']
+        shotmapbk2 = playershots.loc[playershots['typeId']=='Attempt Saved']
         shotmapbk2 = shotmapbk2.loc[shotmapbk2['isBlocked']=='TRUE']
 
         shotmapoff2 = playershots.loc[playershots['typeId'] == 'Miss']
