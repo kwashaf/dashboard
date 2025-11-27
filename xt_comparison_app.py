@@ -1436,8 +1436,8 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling"]
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps"]
     )
     # Init session state
     if "active_tab" not in st.session_state:
@@ -1723,5 +1723,95 @@ def main():
         left,center,right = st.columns([1,3,1])
         with center:
             st.image(fig_to_png_bytes(fig), width=600)
+    # ================================================================
+    # TAB 5 — Shot Maps
+    # ================================================================
+    with tab5:
+        st.session_state["active_tab"] = "Shot Maps"
+        st.header("Shot Maps")
+    
+        # Build player shot dataset
+        playershots = matchdata.loc[
+            (matchdata['playerName'] == playername) &
+            (matchdata['team_name'] == team_choice) &
+            (matchdata['playing_position'] == position)
+        ].copy()
+    
+        # Only where shotType exists
+        playershots = playershots.loc[playershots['shotType'].notna()]
+    
+        # Shot subsets
+        shotmaptar2 = playershots.loc[
+            (playershots['isBlocked'] == 'FALSE') &
+            (playershots['typeId'] == 'Attempt Saved')
+        ]
+    
+        shotmapbk2 = playershots.loc[
+            (playershots['isBlocked'] == 'TRUE') &
+            (playershots['typeId'] == 'Attempt Saved')
+        ]
+    
+        shotmapoff2 = playershots.loc[playershots['typeId'] == 'Miss']
+    
+        goalmap3 = playershots.loc[
+            (playershots['typeId'] == 'Goal') &
+            (playershots['typeId'] != 'Own Goal')
+        ]
+    
+        xg_sum = round(playershots['expectedGoals'].sum(), 2)
+        xgot_sum = round(playershots['expectedGoalsOnTarget'].sum(), 2)
+    
+        # ---- PLOT ----
+        fig, ax = plt.subplots(figsize=(10, 7.5))
+        fig.set_facecolor(BackgroundColor)
+    
+        pitch_left = VerticalPitch(
+            pitch_type='opta',
+            half=True,
+            pitch_color=PitchColor,
+            line_color=PitchLineColor
+        )
+        pitch_left.draw(ax=ax)
+    
+        def get_marker_size(expectedGoals, scale_factor=1000):
+            return expectedGoals * scale_factor
+    
+        pitch_left.scatter(
+            shotmaptar2.start_x, shotmaptar2.start_y,
+            s=get_marker_size(shotmaptar2.expectedGoals),
+            ax=ax, edgecolor='blue', facecolor='none', marker='o',
+            label='Shot on Target'
+        )
+    
+        pitch_left.scatter(
+            shotmapbk2.start_x, shotmapbk2.start_y,
+            s=get_marker_size(shotmapbk2.expectedGoals),
+            ax=ax, edgecolor='orange', facecolor='none', marker='o',
+            label='Shot Blocked'
+        )
+    
+        pitch_left.scatter(
+            shotmapoff2.start_x, shotmapoff2.start_y,
+            s=get_marker_size(shotmapoff2.expectedGoals),
+            ax=ax, edgecolor='red', facecolor='none', marker='o',
+            label='Shot off Target'
+        )
+    
+        pitch_left.scatter(
+            goalmap3.start_x, goalmap3.start_y,
+            s=get_marker_size(goalmap3.expectedGoals),
+            ax=ax, edgecolor='green', facecolor='none', marker='o',
+            label='Goal'
+        )
+    
+        ax.set_title(
+            f"{playername} — Shot Map ({season_choice})",
+            color=TextColor, fontsize=15
+        )
+    
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels, facecolor='none', edgecolor='none')
+    
+        st.pyplot(fig)
 if __name__ == "__main__":
     main()
