@@ -1777,28 +1777,28 @@ def main():
             return expectedGoals * scale_factor
     
         pitch_left.scatter(
-            shotmaptar2.start_x, shotmaptar2.start_y,
+            shotmaptar2.x, shotmaptar2.y,
             s=get_marker_size(shotmaptar2.expectedGoals),
             ax=ax, edgecolor='blue', facecolor='none', marker='o',
             label='Shot on Target'
         )
     
         pitch_left.scatter(
-            shotmapbk2.start_x, shotmapbk2.start_y,
+            shotmapbk2.x, shotmapbk2.y,
             s=get_marker_size(shotmapbk2.expectedGoals),
             ax=ax, edgecolor='orange', facecolor='none', marker='o',
             label='Shot Blocked'
         )
     
         pitch_left.scatter(
-            shotmapoff2.start_x, shotmapoff2.start_y,
+            shotmapoff2.x, shotmapoff2.y,
             s=get_marker_size(shotmapoff2.expectedGoals),
             ax=ax, edgecolor='red', facecolor='none', marker='o',
             label='Shot off Target'
         )
     
         pitch_left.scatter(
-            goalmap3.start_x, goalmap3.start_y,
+            goalmap3.x, goalmap3.y,
             s=get_marker_size(goalmap3.expectedGoals),
             ax=ax, edgecolor='green', facecolor='none', marker='o',
             label='Goal'
