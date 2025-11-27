@@ -1745,10 +1745,10 @@ def main():
         # Subsets
 
         shotmaptar2 = playershots.loc[playershots['typeId']=='Attempt Saved']
-        shotmaptar2 = shotmaptar2.loc[shotmaptar2['isBlocked']=='FALSE']
+        shotmaptar2 = shotmaptar2.loc[shotmaptar2['expectedGoalsOnTarget']>0]
 
         shotmapbk2 = playershots.loc[playershots['typeId']=='Attempt Saved']
-        shotmapbk2 = shotmapbk2.loc[shotmapbk2['isBlocked']=='TRUE']
+        shotmapbk2 = shotmapbk2.loc[shotmapbk2['expectedGoalsOnTarget']== 0]
 
         shotmapoff2 = playershots.loc[playershots['typeId'] == 'Miss']
         goalmap3 = playershots.loc[
