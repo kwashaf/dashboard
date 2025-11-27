@@ -1400,38 +1400,60 @@ def main():
     
     css = """
     <style>
+    
+    /* ---------- COMMON BASE STYLES ---------- */
     .playerinfo-table {
         margin-left: auto;
         margin-right: auto;
         width: 96%;
         border-collapse: collapse;
         font-family: var(--font, "Inter", sans-serif);
-        color: var(--text-color) !important;      /* Works in both modes */
         font-size: 0.95rem;
+        text-align: center;
     }
     
-    .playerinfo-table th {
-        text-align: center !important;
-        padding: 10px 8px;
-        font-weight: 600;
+    /* ---------- LIGHT MODE ---------- */
+    @media (prefers-color-scheme: light) {
+        .playerinfo-table {
+            color: #222 !important;
+        }
     
-        /* Use theme-aware colors instead of white overlays */
-        background-color: var(--block-background-color);
-        color: var(--text-color) !important;
+        .playerinfo-table th {
+            background-color: #e9ecef !important;
+            color: #111 !important;
+            border-bottom: 1px solid #c9c9c9 !important;
+        }
     
-        border-bottom: 1px solid var(--secondary-text-color);
+        .playerinfo-table td {
+            border-bottom: 1px solid #d5d5d5 !important;
+        }
+    
+        .playerinfo-table tr:hover td {
+            background-color: rgba(0,0,0,0.05) !important;
+        }
     }
     
-    .playerinfo-table td {
-        text-align: center !important;
-        padding: 8px 8px;
-        border-bottom: 1px solid var(--secondary-text-color);
+    /* ---------- DARK MODE ---------- */
+    @media (prefers-color-scheme: dark) {
+        .playerinfo-table {
+            color: #f8f9fa !important;
+        }
+    
+        .playerinfo-table th {
+            background-color: rgba(255,255,255,0.10) !important;
+            color: #ffffff !important;
+            border-bottom: 1px solid rgba(255,255,255,0.15) !important;
+        }
+    
+        .playerinfo-table td {
+            border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+        }
+    
+        .playerinfo-table tr:hover td {
+            background-color: rgba(255,255,255,0.08) !important;
+        }
     }
     
-    .playerinfo-table tr:hover td {
-        /* Light hover that adapts to theme */
-        background-color: rgba(125,125,125,0.10);
-    }
     </style>
     """
     
