@@ -1405,28 +1405,32 @@ def main():
         margin-right: auto;
         width: 96%;
         border-collapse: collapse;
-        font-family: var(--font, "Inter", sans-serif); /* Match Streamlit font */
-        color: var(--text-color, #f8f9fa) !important;   /* Match dark theme text */
-        font-size: 0.95rem;                             /* Match body text size */
+        font-family: var(--font, "Inter", sans-serif);
+        color: var(--text-color) !important;      /* Works in both modes */
+        font-size: 0.95rem;
     }
     
     .playerinfo-table th {
         text-align: center !important;
         padding: 10px 8px;
         font-weight: 600;
-        border-bottom: 1px solid rgba(255,255,255,0.15);
-        background-color: rgba(255,255,255,0.06);
-        color: var(--text-color, #ffffff) !important;
+    
+        /* Use theme-aware colors instead of white overlays */
+        background-color: var(--block-background-color);
+        color: var(--text-color) !important;
+    
+        border-bottom: 1px solid var(--secondary-text-color);
     }
     
     .playerinfo-table td {
         text-align: center !important;
         padding: 8px 8px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        border-bottom: 1px solid var(--secondary-text-color);
     }
     
     .playerinfo-table tr:hover td {
-        background-color: rgba(255,255,255,0.10); 
+        /* Light hover that adapts to theme */
+        background-color: rgba(125,125,125,0.10);
     }
     </style>
     """
