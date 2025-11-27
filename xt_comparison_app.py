@@ -1758,7 +1758,7 @@ def main():
     
         # Summary stats
         num_goals = len(goalmap3)
-        num_shots = len(playershots)
+        num_shots = len(shotmaptar2) + len(shotmapbk2) + len(shotmapoff2) = len(goalmap3)
         shots_on_target = len(shotmaptar2)
         shot_conversion_rate = round((shots_on_target / num_shots) * 100, 1) if num_shots > 0 else 0
         goal_conversion_rate = round((num_goals / num_shots) * 100, 1) if num_shots > 0 else 0
@@ -1864,8 +1864,10 @@ def main():
         ax.text(99, 71.5, f'Total xG: {xg_sum}',                     ha='left', fontsize=9, color='black')
         ax.text(99, 70,   f'Total xGOT: {xgot_sum}',                 ha='left', fontsize=9, color='black')
         ax.text(99, 68.5, f'Shots Taken: {num_shots}',               ha='left', fontsize=9, color='black')
-        ax.text(99, 67,   f'Shots on Target: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
-        ax.text(99, 65.5, f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
+        ax.text(99, 67, f'Shots Taken: {shots_on_target}',               ha='left', fontsize=9, color='black')
+
+        ax.text(99, 65.5,   f'Shots Accuracy: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
+        ax.text(99, 63, f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
         ax.text(50, 101,  'Data from Opta - league matches only - larger circles shows higher xG chance',
                 ha='center', fontsize=8, color='black')
     
