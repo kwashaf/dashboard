@@ -1819,7 +1819,7 @@ def main():
         # TITLE (uses default Matplotlib font)
         # ------------------------------------------
         ax.set_title(
-            f"{playername} xG Shot Map {season_choice} - {team_choice}",
+            f"{playername} - xG Shot Map as {position} | {season_choice} - {team_choice}",
             fontsize=15,
             color=TextColor
         )
@@ -1846,7 +1846,7 @@ def main():
             facecolor='none',
             handlelength=5,
             edgecolor='None',
-            bbox_to_anchor=(.22, .94),
+            bbox_to_anchor=(.24, .94),
             fontsize=8
         )
     
