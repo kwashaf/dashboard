@@ -1846,7 +1846,7 @@ def main():
             facecolor='none',
             handlelength=5,
             edgecolor='None',
-            bbox_to_anchor=(.24, .94),
+            bbox_to_anchor=(.221, .94),
             fontsize=8
         )
     
