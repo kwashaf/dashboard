@@ -1265,7 +1265,7 @@ def main():
     teamlog = pd.read_csv("teamlog.csv")   # or st.cache_data if needed
     
     try:
-        teamcode = teamlog.loc[teamlog["name"] == teamname, "id"].iloc[0]
+        teamcode = teamlog.loc[teamlog["name"] == team_choice, "id"].iloc[0]
     except:
         teamcode = None
     
