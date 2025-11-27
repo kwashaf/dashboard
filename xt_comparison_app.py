@@ -1411,7 +1411,11 @@ def main():
         font-size: 0.95rem;
         text-align: center;
     }
-    
+        /* FORCE CENTER ALIGNMENT */
+    .playerinfo-table th,
+    .playerinfo-table td {
+        text-align: center !important;
+    }
     /* ---------- LIGHT MODE ---------- */
     @media (prefers-color-scheme: light) {
         .playerinfo-table {
