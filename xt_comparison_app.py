@@ -1785,46 +1785,48 @@ def main():
             return expectedGoals * scale_factor
     
         # ------------------------------------------
-        # PLOT SHOTS (x and y coords)
+        # PLOT SHOTS
         # ------------------------------------------
         pitch_left.scatter(
             shotmaptar2.x, shotmaptar2.y,
             s=get_marker_size(shotmaptar2.expectedGoals),
-            ax=ax, edgecolor='blue', facecolor='none', marker='o', label='Shot on Target'
+            ax=ax, edgecolor='blue', facecolor='none', marker='o',
+            label='Shot on Target'
         )
     
         pitch_left.scatter(
             shotmapbk2.x, shotmapbk2.y,
             s=get_marker_size(shotmapbk2.expectedGoals),
-            ax=ax, edgecolor='orange', facecolor='none', marker='o', label='Shot Blocked'
+            ax=ax, edgecolor='orange', facecolor='none', marker='o',
+            label='Shot Blocked'
         )
     
         pitch_left.scatter(
             shotmapoff2.x, shotmapoff2.y,
             s=get_marker_size(shotmapoff2.expectedGoals),
-            ax=ax, edgecolor='red', facecolor='none', marker='o', label='Shot off Target'
+            ax=ax, edgecolor='red', facecolor='none', marker='o',
+            label='Shot off Target'
         )
     
         pitch_left.scatter(
             goalmap3.x, goalmap3.y,
             s=get_marker_size(goalmap3.expectedGoals),
-            ax=ax, edgecolor='green', facecolor='none', marker='o', label='Goal'
+            ax=ax, edgecolor='green', facecolor='none', marker='o',
+            label='Goal'
         )
     
         # ------------------------------------------
-        # TITLE – EXACT MATCH TO YOUR STYLE
+        # TITLE (uses default Matplotlib font)
         # ------------------------------------------
-        title_font = FontProperties(family='Tahoma', size=15)
         ax.set_title(
-            f'{playername} xG Shot Map {season_choice} - {team_choice}',
-            fontproperties=title_font,
+            f"{playername} xG Shot Map {season_choice} - {team_choice}",
+            fontsize=15,
             color=TextColor
         )
     
         # ------------------------------------------
-        # LEGEND – EXACT PLACEMENT AND STYLE
+        # LEGEND – SAME LOCATION AS YOUR ORIGINAL
         # ------------------------------------------
-        legend_font = FontProperties(family='Tahoma', size=8)
         handles, labels = ax.get_legend_handles_labels()
     
         legend_markers = [
@@ -1845,11 +1847,11 @@ def main():
             handlelength=5,
             edgecolor='None',
             bbox_to_anchor=(.22, .94),
-            prop=legend_font
+            fontsize=8
         )
     
         # ------------------------------------------
-        # LOGOS – SAME POSITIONING
+        # LOGOS
         # ------------------------------------------
         add_image(teamimage, fig, left=0.7, bottom=0.16, width=0.1,
                   alpha=1, interpolation='hanning')
@@ -1857,19 +1859,19 @@ def main():
                   alpha=1, interpolation='hanning')
     
         # ------------------------------------------
-        # TEXT BLOCK – EXACT MATCH TO YOUR CODE
+        # TEXT BLOCK (all standard fonts)
         # ------------------------------------------
-        ax.text(99, 73,   f'Goals Scored: {num_goals}',            ha='left', fontsize=9, color='black')
-        ax.text(99, 71.5, f'Total xG: {xg_sum}',                   ha='left', fontsize=9, color='black')
-        ax.text(99, 70,   f'Total xGOT: {xgot_sum}',               ha='left', fontsize=9, color='black')
-        ax.text(99, 68.5, f'Shots Taken: {num_shots}',             ha='left', fontsize=9, color='black')
+        ax.text(99, 73,   f'Goals Scored: {num_goals}',              ha='left', fontsize=9, color='black')
+        ax.text(99, 71.5, f'Total xG: {xg_sum}',                     ha='left', fontsize=9, color='black')
+        ax.text(99, 70,   f'Total xGOT: {xgot_sum}',                 ha='left', fontsize=9, color='black')
+        ax.text(99, 68.5, f'Shots Taken: {num_shots}',               ha='left', fontsize=9, color='black')
         ax.text(99, 67,   f'Shots on Target: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
-        ax.text(99, 65.5, f'Goal Conversion: {goal_conversion_rate}%',  ha='left', fontsize=9, color='black')
+        ax.text(99, 65.5, f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
         ax.text(50, 101,  'Data from Opta - league matches only - larger circles shows higher xG chance',
-               ha='center', fontsize=8, color='black')
+                ha='center', fontsize=8, color='black')
     
         # ------------------------------------------
-        # STREAMLIT DISPLAY — MATCH OTHER TABS
+        # STREAMLIT DISPLAY LIKE OTHER TABS
         # ------------------------------------------
         left, center, right = st.columns([1, 3, 1])
         with center:
