@@ -1730,38 +1730,45 @@ def main():
         st.session_state["active_tab"] = "Shot Maps"
         st.header("Shot Maps")
     
-        # Build player shot dataset
+        # ------------------------------------------
+        # BUILD SHOT DATA
+        # ------------------------------------------
         playershots = matchdata.loc[
             (matchdata['playerName'] == playername) &
             (matchdata['team_name'] == team_choice) &
             (matchdata['playing_position'] == position)
         ].copy()
     
-        # Only where shotType exists
+        # Only events with a valid shotType
         playershots = playershots.loc[playershots['shotType'].notna()]
     
-        # Shot subsets
+        # Subsets
         shotmaptar2 = playershots.loc[
             (playershots['isBlocked'] == 'FALSE') &
             (playershots['typeId'] == 'Attempt Saved')
         ]
-    
         shotmapbk2 = playershots.loc[
             (playershots['isBlocked'] == 'TRUE') &
             (playershots['typeId'] == 'Attempt Saved')
         ]
-    
         shotmapoff2 = playershots.loc[playershots['typeId'] == 'Miss']
-    
         goalmap3 = playershots.loc[
             (playershots['typeId'] == 'Goal') &
             (playershots['typeId'] != 'Own Goal')
         ]
     
+        # Summary stats
+        num_goals = len(goalmap3)
+        num_shots = len(playershots)
+        shots_on_target = len(shotmaptar2)
+        shot_conversion_rate = round((shots_on_target / num_shots) * 100, 1) if num_shots > 0 else 0
+        goal_conversion_rate = round((num_goals / num_shots) * 100, 1) if num_shots > 0 else 0
         xg_sum = round(playershots['expectedGoals'].sum(), 2)
         xgot_sum = round(playershots['expectedGoalsOnTarget'].sum(), 2)
     
-        # ---- PLOT ----
+        # ------------------------------------------
+        # CREATE FIGURE
+        # ------------------------------------------
         fig, ax = plt.subplots(figsize=(10, 7.5))
         fig.set_facecolor(BackgroundColor)
     
@@ -1773,45 +1780,99 @@ def main():
         )
         pitch_left.draw(ax=ax)
     
+        # Marker size from xG
         def get_marker_size(expectedGoals, scale_factor=1000):
             return expectedGoals * scale_factor
     
+        # ------------------------------------------
+        # PLOT SHOTS (x and y coords)
+        # ------------------------------------------
         pitch_left.scatter(
             shotmaptar2.x, shotmaptar2.y,
             s=get_marker_size(shotmaptar2.expectedGoals),
-            ax=ax, edgecolor='blue', facecolor='none', marker='o',
-            label='Shot on Target'
+            ax=ax, edgecolor='blue', facecolor='none', marker='o', label='Shot on Target'
         )
     
         pitch_left.scatter(
             shotmapbk2.x, shotmapbk2.y,
             s=get_marker_size(shotmapbk2.expectedGoals),
-            ax=ax, edgecolor='orange', facecolor='none', marker='o',
-            label='Shot Blocked'
+            ax=ax, edgecolor='orange', facecolor='none', marker='o', label='Shot Blocked'
         )
     
         pitch_left.scatter(
             shotmapoff2.x, shotmapoff2.y,
             s=get_marker_size(shotmapoff2.expectedGoals),
-            ax=ax, edgecolor='red', facecolor='none', marker='o',
-            label='Shot off Target'
+            ax=ax, edgecolor='red', facecolor='none', marker='o', label='Shot off Target'
         )
     
         pitch_left.scatter(
             goalmap3.x, goalmap3.y,
             s=get_marker_size(goalmap3.expectedGoals),
-            ax=ax, edgecolor='green', facecolor='none', marker='o',
-            label='Goal'
+            ax=ax, edgecolor='green', facecolor='none', marker='o', label='Goal'
         )
     
+        # ------------------------------------------
+        # TITLE – EXACT MATCH TO YOUR STYLE
+        # ------------------------------------------
+        title_font = FontProperties(family='Tahoma', size=15)
         ax.set_title(
-            f"{playername} — Shot Map ({season_choice})",
-            color=TextColor, fontsize=15
+            f'{playername} xG Shot Map {season_choice} - {team_choice}',
+            fontproperties=title_font,
+            color=TextColor
         )
     
+        # ------------------------------------------
+        # LEGEND – EXACT PLACEMENT AND STYLE
+        # ------------------------------------------
+        legend_font = FontProperties(family='Tahoma', size=8)
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles, labels, facecolor='none', edgecolor='none')
     
-        st.pyplot(fig)
+        legend_markers = [
+            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                       markeredgecolor='blue', markersize=10),
+            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                       markeredgecolor='orange', markersize=10),
+            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                       markeredgecolor='red', markersize=10),
+            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                       markeredgecolor='green', markersize=10)
+        ]
+    
+        ax.legend(
+            legend_markers,
+            labels,
+            facecolor='none',
+            handlelength=5,
+            edgecolor='None',
+            bbox_to_anchor=(.22, .94),
+            prop=legend_font
+        )
+    
+        # ------------------------------------------
+        # LOGOS – SAME POSITIONING
+        # ------------------------------------------
+        add_image(teamimage, fig, left=0.7, bottom=0.16, width=0.1,
+                  alpha=1, interpolation='hanning')
+        add_image(wtaimaged, fig, left=0.472, bottom=0.165, width=0.08,
+                  alpha=1, interpolation='hanning')
+    
+        # ------------------------------------------
+        # TEXT BLOCK – EXACT MATCH TO YOUR CODE
+        # ------------------------------------------
+        ax.text(99, 73,   f'Goals Scored: {num_goals}',            ha='left', fontsize=9, color='black')
+        ax.text(99, 71.5, f'Total xG: {xg_sum}',                   ha='left', fontsize=9, color='black')
+        ax.text(99, 70,   f'Total xGOT: {xgot_sum}',               ha='left', fontsize=9, color='black')
+        ax.text(99, 68.5, f'Shots Taken: {num_shots}',             ha='left', fontsize=9, color='black')
+        ax.text(99, 67,   f'Shots on Target: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
+        ax.text(99, 65.5, f'Goal Conversion: {goal_conversion_rate}%',  ha='left', fontsize=9, color='black')
+        ax.text(50, 101,  'Data from Opta - league matches only - larger circles shows higher xG chance',
+               ha='center', fontsize=8, color='black')
+    
+        # ------------------------------------------
+        # STREAMLIT DISPLAY — MATCH OTHER TABS
+        # ------------------------------------------
+        left, center, right = st.columns([1, 3, 1])
+        with center:
+            st.image(fig_to_png_bytes(fig), width=800)
 if __name__ == "__main__":
     main()
