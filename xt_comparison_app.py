@@ -1758,7 +1758,7 @@ def main():
     
         # Summary stats
         num_goals = len(goalmap3)
-        num_shots = len(shotmaptar2) + len(shotmapbk2) + len(shotmapoff2) = len(goalmap3)
+        num_shots = len(shotmaptar2) + len(shotmapbk2) + len(shotmapoff2) + len(goalmap3)
         shots_on_target = len(shotmaptar2)
         shot_conversion_rate = round((shots_on_target / num_shots) * 100, 1) if num_shots > 0 else 0
         goal_conversion_rate = round((num_goals / num_shots) * 100, 1) if num_shots > 0 else 0
