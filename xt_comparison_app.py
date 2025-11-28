@@ -7,7 +7,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
+from matplotlib.collections import LineCollection
+from matplotlib.colors import to_rgba
 from PIL import Image
 from urllib.request import urlopen
 
@@ -1466,8 +1467,8 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps"]
+    tab1, tab2, tab3, tab4, tab5, tab6= st.tabs(
+        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions"]
     )
     # Init session state
     if "active_tab" not in st.session_state:
@@ -1907,5 +1908,177 @@ def main():
         left, center, right = st.columns([1, 3, 1])
         with center:
             st.image(fig_to_png_bytes(fig), width=800)
+
+# ================================================================
+# TAB X — Creative Actions
+# ================================================================
+    with tab6:
+        st.session_state["active_tab"] = "Creative Actions"
+        st.header("Creative Actions")
+    
+        if not playername or not position:
+            st.warning("Please select a player and position to view Creative Actions.")
+            st.stop()
+    
+        # ---------------------------------------------------------
+        # 1. Build event datasets
+        # ---------------------------------------------------------
+        playerevents = matchdata.loc[
+            (matchdata["playerName"] == playername) &
+            (matchdata["team_name"] == team_choice) &
+            (matchdata["playing_position"] == position)
+        ].copy()
+    
+        # Progressive passes & carries (pitch 1)
+        pitch1data = playerevents[
+            (playerevents["progressive_pass"] == "Yes") |
+            (playerevents["progressive_carry"] == "Yes")
+        ].copy()
+    
+        # Key passes / assists (pitch 2 and 3)
+        pitch2data = playerevents[
+            (playerevents.get("keyPass", 0) == 1) |
+            (playerevents.get("assist", 0) == 1)
+        ].copy()
+    
+        pitch3data = pitch2data.copy()
+    
+        # ---------------------------------------------------------
+        # 2. Create figure with 3 pitches
+        # ---------------------------------------------------------
+        fig, axes = plt.subplots(1, 3, figsize=(21, 8), facecolor=BackgroundColor)
+        plt.subplots_adjust(wspace=0.15)
+    
+        pitch = VerticalPitch(
+            pitch_type="opta",
+            pitch_color=PitchColor,
+            line_color=PitchLineColor
+        )
+    
+        # Draw pitches
+        pitch.draw(ax=axes[0])
+        pitch.draw(ax=axes[1])
+        pitch.draw(ax=axes[2])
+    
+        axes[0].set_title("Progressive Actions", fontsize=12, color=TextColor)
+        axes[1].set_title("Shot Assists", fontsize=12, color=TextColor)
+        axes[2].set_title("Shot Assist Locations", fontsize=12, color=TextColor)
+    
+        # ---------------------------------------------------------
+        # Helper for comet lines
+        # ---------------------------------------------------------
+        from matplotlib.collections import LineCollection
+        from matplotlib.colors import to_rgba
+    
+        def add_comet(ax, x0, y0, x1, y1, color, n=20,
+                      lw_start=0.6, lw_end=2.0,
+                      alpha_start=0.10, alpha_end=1.0, z=3):
+    
+            xs = np.linspace(x0, x1, n)
+            ys = np.linspace(y0, y1, n)
+    
+            segments = np.stack(
+                (np.column_stack([xs[:-1], ys[:-1]]),
+                 np.column_stack([xs[1:], ys[1:]])),
+                axis=1
+            )
+    
+            widths = np.linspace(lw_start, lw_end, n - 1)
+            alphas = np.linspace(alpha_start, alpha_end, n - 1)
+    
+            r, g, b, _ = to_rgba(color, 1.0)
+            colors = [(r, g, b, a) for a in alphas]
+    
+            lc = LineCollection(
+                segments,
+                linewidths=widths,
+                colors=colors,
+                capstyle='round',
+                joinstyle='round',
+                zorder=z
+            )
+            ax.add_collection(lc)
+    
+        # ---------------------------------------------------------
+        # PITCH 1 — Progressive Actions
+        # ---------------------------------------------------------
+        for _, row in pitch1data.iterrows():
+    
+            if row.get("progressive_pass") == "Yes":
+                add_comet(
+                    axes[0],
+                    row["x"], row["y"],
+                    row["end_x"], row["end_y"],
+                    color="green"
+                )
+    
+            if row.get("progressive_carry") == "Yes":
+                add_comet(
+                    axes[0],
+                    row["x"], row["y"],
+                    row["end_x"], row["end_y"],
+                    color="purple"
+                )
+    
+        axes[0].text(50, -5, "Green = Progressive Pass  |  Purple = Progressive Carry",
+                     ha="center", color=TextColor, fontsize=10)
+    
+        # ---------------------------------------------------------
+        # PITCH 2 — Shot Assists (Comet Lines)
+        # ---------------------------------------------------------
+        for _, row in pitch2data.iterrows():
+    
+            if row.get("keyPass", 0) == 1:
+                add_comet(
+                    axes[1],
+                    row["x"], row["y"],
+                    row["end_x"], row["end_y"],
+                    color="orange"
+                )
+    
+            if row.get("assist", 0) == 1:
+                add_comet(
+                    axes[1],
+                    row["x"], row["y"],
+                    row["end_x"], row["end_y"],
+                    color="blue"
+                )
+    
+        axes[1].text(50, -5, "Orange = Shot Assist  |  Blue = Assist",
+                     ha="center", color=TextColor, fontsize=10)
+    
+        # ---------------------------------------------------------
+        # PITCH 3 — Shot Assist Locations (Markers Only)
+        # ---------------------------------------------------------
+        for _, row in pitch3data.iterrows():
+    
+            if row.get("keyPass", 0) == 1:
+                axes[2].plot(
+                    row["x"], row["y"],
+                    marker="o",
+                    markersize=8,
+                    markerfacecolor="orange",
+                    markeredgecolor="black",
+                    linewidth=1.5
+                )
+    
+            if row.get("assist", 0) == 1:
+                axes[2].plot(
+                    row["x"], row["y"],
+                    marker="o",
+                    markersize=8,
+                    markerfacecolor="blue",
+                    markeredgecolor="black",
+                    linewidth=1.5
+                )
+    
+        fig.text(
+            0.52, 0.02,
+            f"{playername} – {teamname} | {competition_choice} {season_choice}",
+            ha="center", color=TextColor, fontsize=11
+        )
+    
+        # Display final output
+        st.image(fig_to_png_bytes(fig), width=1650)
 if __name__ == "__main__":
     main()
