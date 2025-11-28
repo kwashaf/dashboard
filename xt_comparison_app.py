@@ -1755,6 +1755,7 @@ def main():
                 playerrecpass,
                 playername,
                 teamname,
+                position,
                 competition_choice,
                 season_choice,
                 teamimage,
