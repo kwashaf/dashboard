@@ -2145,6 +2145,7 @@ def main():
             teamname=team_choice,
             competition_name=competition_choice,
             season_name=season_choice,
+            position=position,               # ← REQUIRED
             teamimage=teamimage,
             wtaimaged=wtaimaged,
             BackgroundColor=BackgroundColor,
