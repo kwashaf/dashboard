@@ -2080,14 +2080,34 @@ def main():
     
         # ------------- PITCH 1: Progressive Actions -------------
         progdata = playerevents[
-            (playerevents.get("progressive_pass") == "Yes") |
-            (playerevents.get("progressive_carry") == "Yes")
+            (
+                (playerevents.get("progressive_pass") == "Yes") |
+                (playerevents.get("progressive_carry") == "Yes")
+            )
+            &
+            (playerevents.get("corner", 0) != 1)
+            &
+            (playerevents.get("freekick", 0) != 1)
+            &
+            (playerevents.get("throwin", 0) != 1)
+            &
+            (playerevents.get("goalkick", 0) != 1)
         ].copy()
     
         # ------------- PITCH 2 + 3: Shot Assists -------------
         shotassistdata = playerevents[
-            (playerevents.get("keyPass", 0) == 1) |
-            (playerevents.get("assist", 0) == 1)
+            (
+                (playerevents.get("keyPass", 0) == 1) |
+                (playerevents.get("assist", 0) == 1)
+            )
+            &
+            (playerevents.get("corner", 0) != 1)
+            &
+            (playerevents.get("freekick", 0) != 1)
+            &
+            (playerevents.get("throwin", 0) != 1)
+            &
+            (playerevents.get("goalkick", 0) != 1)
         ].copy()
     
         # PITCH 3 just plots locations of the same events
