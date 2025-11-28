@@ -2099,7 +2099,10 @@ def main():
                 (
                     (playerevents.get("progressive_carry") == "Yes") &
                     (playerevents.get("typeId") == "Carry") &
-                    (playerevents.get("carrying_yards", 0) < 30)
+                    (playerevents.get("carrying_yards", 0) < 30) &
+                    (
+                        (playerevents.get("end_y") - playerevents.get("y")).abs() <= 40
+                    )
                 )
             )
             &
