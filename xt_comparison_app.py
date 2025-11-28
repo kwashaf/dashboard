@@ -1130,6 +1130,152 @@ def create_player_actions_figure(
     add_image(wtaimaged, fig, left=0.433, bottom=-0.02175, width=0.06, alpha=1)
 
     return fig
+def create_creative_actions_figure(
+    progdata,
+    shotassistdata,
+    shotlocdata,
+    playername,
+    teamname,
+    competition_name,
+    season_name,
+    teamimage,
+    wtaimaged,
+    BackgroundColor,
+    PitchColor,
+    PitchLineColor,
+    TextColor
+):
+    import matplotlib.pyplot as plt
+    from mplsoccer import VerticalPitch
+    from matplotlib.collections import LineCollection
+    from matplotlib.colors import to_rgba
+    import numpy as np
+
+    # ---------------------------------------------------------
+    # Helper: Comet Line
+    # ---------------------------------------------------------
+    def add_comet(ax, x0, y0, x1, y1, color,
+                  n=20, lw_start=0.6, lw_end=2.0,
+                  alpha_start=0.10, alpha_end=1.0,
+                  z=3):
+
+        xs = np.linspace(x0, x1, n)
+        ys = np.linspace(y0, y1, n)
+
+        segments = np.stack(
+            (np.column_stack([xs[:-1], ys[:-1]]),
+             np.column_stack([xs[1:], ys[1:]])),
+            axis=1
+        )
+
+        widths = np.linspace(lw_start, lw_end, n - 1)
+        alphas = np.linspace(alpha_start, alpha_end, n - 1)
+
+        r, g, b, _ = to_rgba(color, 1.0)
+        colors = [(r, g, b, a) for a in alphas]
+
+        lc = LineCollection(
+            segments,
+            linewidths=widths,
+            colors=colors,
+            capstyle='round',
+            joinstyle='round',
+            zorder=z
+        )
+        ax.add_collection(lc)
+
+    # ---------------------------------------------------------
+    # 1) Create figure — SAME LAYOUT AS PLAYER ACTIONS
+    # ---------------------------------------------------------
+    fig, axes = plt.subplots(1, 3, figsize=(18, 8.25), facecolor=BackgroundColor)
+    plt.subplots_adjust(wspace=.1)
+
+    pitch = VerticalPitch(
+        pitch_type='opta',
+        pitch_color=PitchColor,
+        line_color=PitchLineColor
+    )
+
+    # Draw all pitches
+    pitch.draw(ax=axes[0], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
+    pitch.draw(ax=axes[1], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
+    pitch.draw(ax=axes[2], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
+
+    # ---------------------------------------------------------
+    # PITCH 1 — PROGRESSIVE ACTIONS
+    # ---------------------------------------------------------
+    axes[0].set_title(f"{playername} - Progressive Actions", fontsize=10, color=TextColor)
+
+    for _, row in progdata.iterrows():
+        x0, y0, x1, y1 = row["x"], row["y"], row["end_x"], row["end_y"]
+
+        if row.get("progressive_pass") == "Yes":
+            add_comet(axes[0], x0, y0, x1, y1, color="green")
+
+        if row.get("progressive_carry") == "Yes":
+            add_comet(axes[0], x0, y0, x1, y1, color="purple")
+
+    axes[0].text(50, -5,
+                 "Green = Progressive Pass | Purple = Progressive Carry",
+                 ha='center', fontsize=9, color=TextColor)
+
+    axes[0].text(50, -13, f"{playername} - {teamname}",
+                 ha='center', fontsize=12, color=TextColor, fontweight='bold')
+
+    axes[0].text(50, -20, f"{competition_name} | {season_name}",
+                 ha='center', fontsize=12, color=TextColor, fontweight='bold')
+
+    # ---------------------------------------------------------
+    # PITCH 2 — SHOT ASSISTS (Comet lines)
+    # ---------------------------------------------------------
+    axes[1].set_title(f"{playername} - Shot Assists", fontsize=10, color=TextColor)
+
+    for _, row in shotassistdata.iterrows():
+
+        x0, y0, x1, y1 = row["x"], row["y"], row["end_x"], row["end_y"]
+
+        if row.get("keyPass", 0) == 1:
+            add_comet(axes[1], x0, y0, x1, y1, color="orange")
+
+        if row.get("assist", 0) == 1:
+            add_comet(axes[1], x0, y0, x1, y1, color="blue")
+
+    axes[1].text(50, -5,
+                 "Orange = Shot Assist | Blue = Assist",
+                 ha='center', fontsize=9, color=TextColor)
+
+    # ---------------------------------------------------------
+    # PITCH 3 — SHOT ASSIST LOCATIONS (Markers)
+    # ---------------------------------------------------------
+    axes[2].set_title(f"{playername} - Shot Assist Locations", fontsize=10, color=TextColor)
+
+    for _, row in shotlocdata.iterrows():
+
+        if row.get("keyPass", 0) == 1:
+            axes[2].plot(
+                row["x"], row["y"],
+                marker="o", markersize=8,
+                markerfacecolor="orange", markeredgecolor="black", linewidth=1.5
+            )
+
+        if row.get("assist", 0) == 1:
+            axes[2].plot(
+                row["x"], row["y"],
+                marker="o", markersize=8,
+                markerfacecolor="blue", markeredgecolor="black", linewidth=1.5
+            )
+
+    axes[2].text(50, -5,
+                 "Orange = Shot Assist | Blue = Assist",
+                 ha='center', fontsize=9, color=TextColor)
+
+    # ---------------------------------------------------------
+    # LOGOS (exactly same placement as Player Actions)
+    # ---------------------------------------------------------
+    add_image(teamimage, fig, left=0.57, bottom=-0.03, width=0.05, alpha=1)
+    add_image(wtaimaged, fig, left=0.433, bottom=-0.02175, width=0.06, alpha=1)
+
+    return fig
 # -----------------------------------------------------------------------------
 # STREAMLIT APP
 # -----------------------------------------------------------------------------
@@ -1916,169 +2062,61 @@ def main():
         st.session_state["active_tab"] = "Creative Actions"
         st.header("Creative Actions")
     
+        # Prevent crash
         if not playername or not position:
             st.warning("Please select a player and position to view Creative Actions.")
             st.stop()
     
         # ---------------------------------------------------------
-        # 1. Build event datasets
+        # 1. Build Data for Creative Actions
         # ---------------------------------------------------------
+    
+        # Base player events
         playerevents = matchdata.loc[
             (matchdata["playerName"] == playername) &
             (matchdata["team_name"] == team_choice) &
             (matchdata["playing_position"] == position)
         ].copy()
     
-        # Progressive passes & carries (pitch 1)
-        pitch1data = playerevents[
-            (playerevents["progressive_pass"] == "Yes") |
-            (playerevents["progressive_carry"] == "Yes")
+        # ------------- PITCH 1: Progressive Actions -------------
+        progdata = playerevents[
+            (playerevents.get("progressive_pass") == "Yes") |
+            (playerevents.get("progressive_carry") == "Yes")
         ].copy()
     
-        # Key passes / assists (pitch 2 and 3)
-        pitch2data = playerevents[
+        # ------------- PITCH 2 + 3: Shot Assists -------------
+        shotassistdata = playerevents[
             (playerevents.get("keyPass", 0) == 1) |
             (playerevents.get("assist", 0) == 1)
         ].copy()
     
-        pitch3data = pitch2data.copy()
+        # PITCH 3 just plots locations of the same events
+        shotlocdata = shotassistdata.copy()
     
         # ---------------------------------------------------------
-        # 2. Create figure with 3 pitches
+        # 2. Create the Creative Actions Visual
         # ---------------------------------------------------------
-        fig, axes = plt.subplots(1, 3, figsize=(21, 8), facecolor=BackgroundColor)
-        plt.subplots_adjust(wspace=0.15)
-    
-        pitch = VerticalPitch(
-            pitch_type="opta",
-            pitch_color=PitchColor,
-            line_color=PitchLineColor
+        fig = create_creative_actions_figure(
+            progdata=progdata,
+            shotassistdata=shotassistdata,
+            shotlocdata=shotlocdata,
+            playername=playername,
+            teamname=team_choice,
+            competition_name=competition_choice,
+            season_name=season_choice,
+            teamimage=teamimage,
+            wtaimaged=wtaimaged,
+            BackgroundColor=BackgroundColor,
+            PitchColor=PitchColor,
+            PitchLineColor=PitchLineColor,
+            TextColor=TextColor
         )
     
-        # Draw pitches
-        pitch.draw(ax=axes[0])
-        pitch.draw(ax=axes[1])
-        pitch.draw(ax=axes[2])
-    
-        axes[0].set_title("Progressive Actions", fontsize=12, color=TextColor)
-        axes[1].set_title("Shot Assists", fontsize=12, color=TextColor)
-        axes[2].set_title("Shot Assist Locations", fontsize=12, color=TextColor)
-    
         # ---------------------------------------------------------
-        # Helper for comet lines
+        # 3. Display in Center Column
         # ---------------------------------------------------------
-        from matplotlib.collections import LineCollection
-        from matplotlib.colors import to_rgba
-    
-        def add_comet(ax, x0, y0, x1, y1, color, n=20,
-                      lw_start=0.6, lw_end=2.0,
-                      alpha_start=0.10, alpha_end=1.0, z=3):
-    
-            xs = np.linspace(x0, x1, n)
-            ys = np.linspace(y0, y1, n)
-    
-            segments = np.stack(
-                (np.column_stack([xs[:-1], ys[:-1]]),
-                 np.column_stack([xs[1:], ys[1:]])),
-                axis=1
-            )
-    
-            widths = np.linspace(lw_start, lw_end, n - 1)
-            alphas = np.linspace(alpha_start, alpha_end, n - 1)
-    
-            r, g, b, _ = to_rgba(color, 1.0)
-            colors = [(r, g, b, a) for a in alphas]
-    
-            lc = LineCollection(
-                segments,
-                linewidths=widths,
-                colors=colors,
-                capstyle='round',
-                joinstyle='round',
-                zorder=z
-            )
-            ax.add_collection(lc)
-    
-        # ---------------------------------------------------------
-        # PITCH 1 — Progressive Actions
-        # ---------------------------------------------------------
-        for _, row in pitch1data.iterrows():
-    
-            if row.get("progressive_pass") == "Yes":
-                add_comet(
-                    axes[0],
-                    row["x"], row["y"],
-                    row["end_x"], row["end_y"],
-                    color="green"
-                )
-    
-            if row.get("progressive_carry") == "Yes":
-                add_comet(
-                    axes[0],
-                    row["x"], row["y"],
-                    row["end_x"], row["end_y"],
-                    color="purple"
-                )
-    
-        axes[0].text(50, -5, "Green = Progressive Pass  |  Purple = Progressive Carry",
-                     ha="center", color=TextColor, fontsize=10)
-    
-        # ---------------------------------------------------------
-        # PITCH 2 — Shot Assists (Comet Lines)
-        # ---------------------------------------------------------
-        for _, row in pitch2data.iterrows():
-    
-            if row.get("keyPass", 0) == 1:
-                add_comet(
-                    axes[1],
-                    row["x"], row["y"],
-                    row["end_x"], row["end_y"],
-                    color="orange"
-                )
-    
-            if row.get("assist", 0) == 1:
-                add_comet(
-                    axes[1],
-                    row["x"], row["y"],
-                    row["end_x"], row["end_y"],
-                    color="blue"
-                )
-    
-        axes[1].text(50, -5, "Orange = Shot Assist  |  Blue = Assist",
-                     ha="center", color=TextColor, fontsize=10)
-    
-        # ---------------------------------------------------------
-        # PITCH 3 — Shot Assist Locations (Markers Only)
-        # ---------------------------------------------------------
-        for _, row in pitch3data.iterrows():
-    
-            if row.get("keyPass", 0) == 1:
-                axes[2].plot(
-                    row["x"], row["y"],
-                    marker="o",
-                    markersize=8,
-                    markerfacecolor="orange",
-                    markeredgecolor="black",
-                    linewidth=1.5
-                )
-    
-            if row.get("assist", 0) == 1:
-                axes[2].plot(
-                    row["x"], row["y"],
-                    marker="o",
-                    markersize=8,
-                    markerfacecolor="blue",
-                    markeredgecolor="black",
-                    linewidth=1.5
-                )
-    
-        fig.text(
-            0.52, 0.02,
-            f"{playername} – {teamname} | {competition_choice} {season_choice}",
-            ha="center", color=TextColor, fontsize=11
-        )
-    
-        # Display final output
-        st.image(fig_to_png_bytes(fig), width=1650)
+        left, center, right = st.columns([1, 3, 1])
+        with center:
+            st.image(fig_to_png_bytes(fig), width=1600)
 if __name__ == "__main__":
     main()
