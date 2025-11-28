@@ -950,6 +950,7 @@ def create_player_actions_figure(
     playerrecpass,
     playername,
     teamname,
+    position,
     competition_name,
     season_name,
     teamimage,
@@ -976,13 +977,13 @@ def create_player_actions_figure(
 
     # Draw pitches
     pitch_arrows.draw(ax=axes[0], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
-    axes[0].set_title(f'{playername} - Attacking Event Locations', fontsize=10, color=TextColor)
+    axes[0].set_title(f'{playername} - Attacking Event Locations as {position}', fontsize=10, color=TextColor)
 
     pitch_bins.draw(ax=axes[1], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
-    axes[1].set_title(f'{playername} - Defensive Event Locations', fontsize=10, color=TextColor)
+    axes[1].set_title(f'{playername} - Defensive Event Locations as {position}', fontsize=10, color=TextColor)
 
     pitch_bins.draw(ax=axes[2], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
-    axes[2].set_title(f'{playername} - Pass Reception Locations', fontsize=10, color=TextColor)
+    axes[2].set_title(f'{playername} - Pass Reception Locations as {position}', fontsize=10, color=TextColor)
 
     # ---------------------------------------------------------
     # SHARED KDE GRID (IMPORTANT FIX)
@@ -1138,6 +1139,7 @@ def create_creative_actions_figure(
     teamname,
     competition_name,
     season_name,
+    position,
     teamimage,
     wtaimaged,
     BackgroundColor,
@@ -1204,7 +1206,7 @@ def create_creative_actions_figure(
     # ---------------------------------------------------------
     # PITCH 1 — PROGRESSIVE ACTIONS
     # ---------------------------------------------------------
-    axes[0].set_title(f"{playername} - Progressive Actions", fontsize=10, color=TextColor)
+    axes[0].set_title(f"{playername} - Progressive Actions as {position}", fontsize=10, color=TextColor)
 
     for _, row in progdata.iterrows():
         x0, y0, x1, y1 = row["y"], row["x"], row["end_y"], row["end_x"]
@@ -1228,7 +1230,7 @@ def create_creative_actions_figure(
     # ---------------------------------------------------------
     # PITCH 2 — SHOT ASSISTS (Comet lines)
     # ---------------------------------------------------------
-    axes[1].set_title(f"{playername} - Shot Assists", fontsize=10, color=TextColor)
+    axes[1].set_title(f"{playername} - Shot Assists as {position}", fontsize=10, color=TextColor)
 
     for _, row in shotassistdata.iterrows():
 
@@ -1247,7 +1249,7 @@ def create_creative_actions_figure(
     # ---------------------------------------------------------
     # PITCH 3 — SHOT ASSIST LOCATIONS (Markers)
     # ---------------------------------------------------------
-    axes[2].set_title(f"{playername} - Shot Assist Locations", fontsize=10, color=TextColor)
+    axes[2].set_title(f"{playername} - Shot Assist Locations as {position}", fontsize=10, color=TextColor)
 
     for _, row in shotlocdata.iterrows():
 
@@ -1268,7 +1270,12 @@ def create_creative_actions_figure(
     axes[2].text(50, -5,
                  "Orange = Shot Assist | Blue = Assist",
                  ha='center', fontsize=9, color=TextColor)
-
+    axes[2].text(50, -10, 'Events shown are open play only',
+                 ha='center', fontsize=9, color=TextColor)
+    axes[2].text(50, -15, 'Shot Assists are passes that lead directly to a shot',
+                 ha='center', fontsize=9, color=TextColor)
+    axes[2].text(50, -20, 'Data from Opta',
+                 ha='center', fontsize=9, color=TextColor)
     # ---------------------------------------------------------
     # LOGOS (exactly same placement as Player Actions)
     # ---------------------------------------------------------
@@ -2081,8 +2088,18 @@ def main():
         # ------------- PITCH 1: Progressive Actions -------------
         progdata = playerevents[
             (
-                (playerevents.get("progressive_pass") == "Yes") |
-                (playerevents.get("progressive_carry") == "Yes")
+                # Progressive Pass
+                (
+                    (playerevents.get("progressive_pass") == "Yes") &
+                    (playerevents.get("typeId") == "Pass")
+                )
+                |
+                # Progressive Carry (but only < 30 yards)
+                (
+                    (playerevents.get("progressive_carry") == "Yes") &
+                    (playerevents.get("typeId") == "Carry") &
+                    (playerevents.get("carrying_yards", 0) < 30)
+                )
             )
             &
             (playerevents.get("corner", 0) != 1)
@@ -2093,12 +2110,15 @@ def main():
             &
             (playerevents.get("goalkick", 0) != 1)
         ].copy()
-    
         # ------------- PITCH 2 + 3: Shot Assists -------------
         shotassistdata = playerevents[
             (
-                (playerevents.get("keyPass", 0) == 1) |
-                (playerevents.get("assist", 0) == 1)
+                (
+                    (playerevents.get("keyPass", 0) == 1) |
+                    (playerevents.get("assist", 0) == 1)
+                )
+                &
+                (playerevents.get("typeId") == "Pass")
             )
             &
             (playerevents.get("corner", 0) != 1)
