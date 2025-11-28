@@ -1207,7 +1207,7 @@ def create_creative_actions_figure(
     axes[0].set_title(f"{playername} - Progressive Actions", fontsize=10, color=TextColor)
 
     for _, row in progdata.iterrows():
-        x0, y0, x1, y1 = row["x"], row["y"], row["end_x"], row["end_y"]
+        x0, y0, x1, y1 = row["y"], row["x"], row["end_y"], row["end_x"]
 
         if row.get("progressive_pass") == "Yes":
             add_comet(axes[0], x0, y0, x1, y1, color="green")
@@ -1232,7 +1232,7 @@ def create_creative_actions_figure(
 
     for _, row in shotassistdata.iterrows():
 
-        x0, y0, x1, y1 = row["x"], row["y"], row["end_x"], row["end_y"]
+        x0, y0, x1, y1 = row["y"], row["x"], row["end_y"], row["end_x"]
 
         if row.get("keyPass", 0) == 1:
             add_comet(axes[1], x0, y0, x1, y1, color="orange")
@@ -1253,14 +1253,14 @@ def create_creative_actions_figure(
 
         if row.get("keyPass", 0) == 1:
             axes[2].plot(
-                row["x"], row["y"],
+                row["y"], row["x"],
                 marker="o", markersize=8,
                 markerfacecolor="orange", markeredgecolor="black", linewidth=1.5
             )
 
         if row.get("assist", 0) == 1:
             axes[2].plot(
-                row["x"], row["y"],
+                row["y"], row["x"],
                 marker="o", markersize=8,
                 markerfacecolor="blue", markeredgecolor="black", linewidth=1.5
             )
