@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgba
+from matplotlib.lines import Line2D
+
 from PIL import Image
 from urllib.request import urlopen
 import plotly.express as px
@@ -195,6 +197,160 @@ def metric_is_percent(display_name: str) -> bool:
     Any metric whose display name includes '%' is considered a percent metric.
     """
     return "%" in display_name
+
+def determine_def_zone(row):
+    """
+    Zones for defensive half only (x <= 50).
+    Zone 1 = Penalty box
+    Zone 2–6 = 5 horizontal bands
+    """
+    x = row['x']
+    y = row['y']
+
+    # Penalty box horizontally: x <= 18 AND between the posts
+    if x <= 17 and 21.1 <= y <= 78.9:
+        return 1
+
+    # 5 horizontal bands across defensive half
+    if y < 21.1:
+        return 6
+    elif 21.1 <= y < 40:
+        return 5
+    elif 40 <= y < 60:
+        return 4
+    elif 60 <= y < 78.9:
+        return 3
+    else:
+        return 2
+
+def create_defensive_actions_figure(
+    matchdata,
+    playername,
+    team_choice,
+    position,
+    teamimage,
+    wtaimaged,
+    BackgroundColor,
+    PitchColor,
+    PitchLineColor,
+    TextColor
+):
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from mplsoccer import VerticalPitch
+
+    defensive_types = ['Tackle', 'Aerial', 'Challenge']
+
+    # ---------------------------
+    # 1. FILTER DATA
+    # ---------------------------
+    allevents = matchdata.loc[
+        (matchdata['playing_position'] == position) &
+        (matchdata['x'] <= 50) & 
+        (matchdata['typeId'].isin(defensive_types))
+    ].copy()
+
+    allevents['zone'] = allevents.apply(determine_def_zone, axis=1)
+    allevents['is_success'] = allevents['outcome'].eq("Successful")
+
+    playerevents = allevents.loc[
+        (allevents['playerName'] == playername) &
+        (allevents['team_name'] == team_choice)
+    ].copy()
+
+    # ---------------------------
+    # 2. SUMMARY STATS
+    # ---------------------------
+    zone_summary_all = allevents.groupby("zone").agg(
+        total=("zone", "size"),
+        success=("is_success", "sum")
+    ).reset_index()
+
+    zone_summary_player = playerevents.groupby("zone").agg(
+        total=("zone", "size"),
+        success=("is_success", "sum")
+    ).reset_index()
+
+    # Fill missing zones
+    all_z = pd.DataFrame({"zone": range(1, 7)})
+
+    zone_summary_all = all_z.merge(zone_summary_all, on="zone", how="left").fillna(0)
+    zone_summary_player = all_z.merge(zone_summary_player, on="zone", how="left").fillna(0)
+
+    zone_summary_all["rate"] = zone_summary_all["success"] / zone_summary_all["total"].replace(0, np.nan) * 100
+    zone_summary_player["rate"] = zone_summary_player["success"] / zone_summary_player["total"].replace(0, np.nan) * 100
+
+    zone_summary_all["rate"] = zone_summary_all["rate"].fillna(0)
+    zone_summary_player["rate"] = zone_summary_player["rate"].fillna(0)
+
+    # ---------------------------
+    # 3. DRAW FIGURE
+    # ---------------------------
+    fig, ax = plt.subplots(figsize=(15, 10))
+    fig.set_facecolor(BackgroundColor)
+
+    pitch = VerticalPitch(
+        pitch_type='opta',
+        pitch_color=PitchColor,
+        line_color=PitchLineColor
+    )
+    pitch.draw(ax=ax)
+
+    # Draw vertical band lines
+    band_lines = [78.9, 60, 40, 21.1]
+    for v in band_lines:
+        ax.axvline(v, ymin=0.17, ymax=0.50, color='blue', linestyle='--', alpha=0.3)
+
+    # ---------------------------
+    # 4. PLACE TEXT FOR ZONES
+    # ---------------------------
+    zone_centers = {
+        2: 89, 3: 70, 4: 50, 5: 30, 6: 11
+    }
+
+    for zone in range(2, 7):
+        x = zone_centers[zone]
+        player_val = int(zone_summary_player.loc[zone_summary_player.zone == zone, "total"])
+        league_val = zone_summary_all.loc[zone_summary_all.zone == zone, "rate"].iloc[0]
+
+        ax.text(x, 51, f"{player_val}", fontsize=10, ha='center', weight='bold')
+        ax.text(x, 53.5, f"({league_val:.1f}%)", fontsize=8, ha='center')
+
+    # Penalty box zone
+    player_val = int(zone_summary_player.loc[zone_summary_player.zone == 1, "total"])
+    league_val = zone_summary_all.loc[zone_summary_all.zone == 1, "rate"].iloc[0]
+
+    ax.text(50, 13, f"{player_val}", fontsize=10, ha='center', weight='bold')
+    ax.text(50, 15.5, f"({league_val:.1f}%)", fontsize=8, ha='center')
+
+    # ---------------------------
+    # 5. TITLE + NOTES
+    # ---------------------------
+    ax.text(50, 60, "Defensive Duel Success by Zone", fontsize=10, ha='center')
+    ax.text(50, 63, "Zones split horizontally + penalty box", fontsize=8, ha='center')
+    ax.text(50, 66, "League Avg in brackets • Data: Opta", fontsize=8, ha='center')
+
+    # ---------------------------
+    # 6. SCATTER EVENTS
+    # ---------------------------
+    markers = {"Tackle": ">", "Challenge": ">", "Aerial": "s"}
+
+    for _, ev in playerevents.iterrows():
+        marker = markers.get(ev['typeId'], 'o')
+        color = 'green' if ev['is_success'] else 'red'
+        ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.3)
+
+    legend_elements = [
+        Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle/Challenge'),
+        Line2D([0], [0], marker='s', color='none', markerfacecolor='green', label='Aerial')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right')
+
+    add_image(teamimage, fig, left=0.36, bottom=0.75, width=0.05)
+    add_image(wtaimaged, fig, left=0.49, bottom=0.66, width=0.04)
+
+    return fig
+
 # -----------------------------------------------------------------------------
 # PLAYER PROFILING CONFIG
 # -----------------------------------------------------------------------------
@@ -1712,8 +1868,8 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
-        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions", "Metric Comparisons"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
+        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions", "Metric Comparisons", "Defensive Actions"]
     )
     # Init session state
     if "active_tab" not in st.session_state:
@@ -2408,5 +2564,39 @@ def main():
     
         else:
             st.info("Please select exactly two metrics.")
+    # ==========================================================
+    # TAB 8 — DEFENSIVE ACTIONS
+    # ==========================================================
+    with tab8:
+        st.header("Defensive Actions")
+    
+        # -----------------------------------
+        # Defensive data prep (LOCAL TO TAB)
+        # -----------------------------------
+        defensive_types = ['Tackle', 'Aerial', 'Challenge']
+    
+        defdata = matchdata.loc[
+            (matchdata["playing_position"] == position) &
+            (matchdata["typeId"].isin(defensive_types))
+        ].copy()
+    
+        defdata["x"] = pd.to_numeric(defdata["x"], errors="coerce")
+        defdata["y"] = pd.to_numeric(defdata["y"], errors="coerce")
+        defdata["is_success"] = defdata["outcome"].eq("Successful")
+    
+        fig = create_defensive_actions_figure(
+            matchdata=matchdata,
+            playername=playername,
+            team_choice=team_choice,
+            position=position,
+            teamimage=teamimage,
+            wtaimaged=wtaimaged,
+            BackgroundColor=BackgroundColor,
+            PitchColor=PitchColor,
+            PitchLineColor=PitchLineColor,
+            TextColor=TextColor
+        )
+    
+        st.image(fig_to_png_bytes(fig), width=700)
 if __name__ == "__main__":
     main()
