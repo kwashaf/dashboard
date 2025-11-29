@@ -178,7 +178,8 @@ SCATTER_METRIC_MAP = {
     "shot_quality": "Shot Quality %",
     "box_touches_per_shot": "Touches in Box per Shot",
 }
-
+def metric_is_percent(display_name: str) -> bool:
+    return "%" in display_name
 # -----------------------------------------------------------------------------
 # PLAYER PROFILING CONFIG
 # -----------------------------------------------------------------------------
@@ -2244,7 +2245,8 @@ def main():
     # ================================================================
     with tab7:
         st.header("Interactive Metric Scatter Plot (Position + Minute Filtered)")
-    
+        is_x_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_x])
+        is_y_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_y])
         # Filter dataset by selected position + minutes
         df_filtered = player_stats.copy()
         df_filtered["minutes_played"] = pd.to_numeric(df_filtered["minutes_played"], errors="coerce")
@@ -2315,18 +2317,22 @@ def main():
             )
     
             # Axis styling (INCREASE FONT + REMOVE GRIDLINES)
+            # X-Axis formatting
             fig.update_xaxes(
                 title_font=dict(color=TextColor, size=14),
                 tickfont=dict(color=TextColor, size=14),
-                showgrid=False               # <-- remove gridlines
+                showgrid=False,
+                tickformat=".0%" if is_x_percent else None
             )
-    
+            
+            # Y-Axis formatting
             fig.update_yaxes(
                 title_font=dict(color=TextColor, size=14),
                 tickfont=dict(color=TextColor, size=14),
-                showgrid=False               # <-- remove gridlines
+                showgrid=False,
+                tickformat=".0%" if is_y_percent else None
             )
-    
+                
             # Highlight selected player + hover
             fig.update_traces(
                 marker=dict(line=dict(width=1.5, color="white")),
