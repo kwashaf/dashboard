@@ -2259,7 +2259,7 @@ def main():
     # TAB 7 — Metric Scatter (FINAL POLISHED & CORRECTED VERSION)
     # ================================================================
     with tab7:
-        st.header("Interactive Metric Scatter Plot (Position + Minute Filtered)")
+        st.header(f"Interactive Metric Comparison - {position} in {competition_choice}")
     
         # ------------------------------------------------------------
         # Filter dataset by selected position + minutes
