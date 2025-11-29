@@ -349,14 +349,14 @@ def create_defensive_actions_figure(
         ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.3)
 
     legend_elements = [
-        Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle/Challenge'),
+        Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle),
         Line2D([0], [0], marker='s', color='none', markerfacecolor='green', label='Aerial')
     ]
     legend = ax.legend(
         handles=legend_elements,
         fontsize=6,
         loc='center left',
-        bbox_to_anchor=(0.7, 0.7),   # adjust to sit right of WTA logo
+        bbox_to_anchor=(0.55, 0.75),   # adjust to sit right of WTA logo
         frameon=False
     )
 
@@ -2611,6 +2611,6 @@ def main():
             TextColor=TextColor
         )
     
-        st.image(fig_to_png_bytes(fig), width=700)
+        st.image(fig_to_png_bytes(fig), width=600)
 if __name__ == "__main__":
     main()
