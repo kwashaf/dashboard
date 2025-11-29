@@ -2302,7 +2302,8 @@ def main():
             fig.update_layout(
                 title=f"{SCATTER_METRIC_MAP[metric_x]} vs {SCATTER_METRIC_MAP[metric_y]} — {position} only",
                 title_font=dict(color=TextColor, size=20),
-                title_x=0.5,                      # <-- centered title
+                title_x=0.52,                     # <-- center over plot area
+                title_xanchor="center",
                 xaxis_title=SCATTER_METRIC_MAP[metric_x],
                 yaxis_title=SCATTER_METRIC_MAP[metric_y],
                 plot_bgcolor=PitchColor,
