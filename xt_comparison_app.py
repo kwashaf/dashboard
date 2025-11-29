@@ -407,9 +407,9 @@ def create_defensive_actions_figure(
     # ---------------------------
     # 5. TITLE + NOTES
     # ---------------------------
-    ax.text(50,60, 'Orange circles show ball recoveries, blocks & interceptions', fontsize=8, color='black', ha='center', va='center')
-    ax.text(50,63, 'Zones are split into 5 zones across the pitch, and penalty box', fontsize=8, color='black', ha='center', va='center')
-    ax.text(50,66, 'Data from Opta - number in brackets is league average for that playing position', fontsize=8, color='black', ha='center', va='center')
+    ax.text(50,61, 'Orange circles show ball recoveries, blocks & interceptions', fontsize=8, color='black', ha='center', va='center')
+    ax.text(50,64, 'Zones are split into 5 zones across the pitch, and penalty box', fontsize=8, color='black', ha='center', va='center')
+    ax.text(50,67, 'Data from Opta - number in brackets is league average for that playing position', fontsize=8, color='black', ha='center', va='center')
     # ---------------------------
     # 6. SCATTER EVENTS
     # ---------------------------
