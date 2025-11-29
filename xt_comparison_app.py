@@ -2318,15 +2318,13 @@ def main():
     
             # Axis + grid styling
             fig.update_xaxes(
-                showgrid=False,
-                tickfont=dict(color=TextColor),
-                title_font=dict(color=TextColor)
+                title_font=dict(color=TextColor, size=14),
+                tickfont=dict(color=TextColor, size=14)
             )
             
             fig.update_yaxes(
-                showgrid=False,
-                tickfont=dict(color=TextColor),
-                title_font=dict(color=TextColor)
+                title_font=dict(color=TextColor, size=14),
+                tickfont=dict(color=TextColor, size=14)
             )
             
             # Highlight selected player + ONLY show player_name on hover
@@ -2334,7 +2332,21 @@ def main():
                 marker=dict(line=dict(width=1.5, color="white")),
                 hovertemplate="%{hovertext}<extra></extra>"   # use the existing hovertext (player_name only)
             )
-                
+            fig.add_layout_image(
+                dict(
+                    source=wtaimaged,     # <--- USE PIL IMAGE DIRECTLY
+                    xref="paper", 
+                    yref="paper",
+                    x=0.01,               # top-left of plot (inside axis)
+                    y=0.99,
+                    sizex=0.20,           # % of plot width
+                    sizey=0.20,           # % of plot height
+                    xanchor="left",
+                    yanchor="top",
+                    opacity=0.5,
+                    layer="above"
+                )
+            )    
             st.plotly_chart(fig, use_container_width=False)
     
         else:
