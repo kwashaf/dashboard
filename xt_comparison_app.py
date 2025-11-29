@@ -356,7 +356,7 @@ def create_defensive_actions_figure(
         handles=legend_elements,
         fontsize=6,
         loc='center left',
-        bbox_to_anchor=(0.75, 0.55),   # adjust to sit right of WTA logo
+        bbox_to_anchor=(0.75, 0.58),   # adjust to sit right of WTA logo
         frameon=False
     )
 
