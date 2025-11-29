@@ -418,7 +418,7 @@ def create_defensive_actions_figure(
     for _, ev in playerevents.iterrows():
         marker = markers.get(ev['typeId'], 'o')
         color = 'green' if ev['is_success'] else 'red'
-        ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.3)
+        ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.45)
     for _, ev in player_extra.iterrows():
         ax.scatter(
             ev['y'], ev['x'],
