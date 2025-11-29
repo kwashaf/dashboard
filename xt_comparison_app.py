@@ -2332,8 +2332,7 @@ def main():
             # Highlight selected player + ONLY show player_name on hover
             fig.update_traces(
                 marker=dict(line=dict(width=1.5, color="white")),
-                hovertext=df_plot["player_name"],             # exact hover name
-                hovertemplate="%{hovertext}<extra></extra>"   # removes ALL other hover info
+                hovertemplate="%{hovertext}<extra></extra>"   # use the existing hovertext (player_name only)
             )
                 
             st.plotly_chart(fig, use_container_width=False)
