@@ -2303,14 +2303,19 @@ def main():
                 plot_bgcolor=PitchColor,
                 paper_bgcolor=PitchColor,
                 font=dict(color="black"),
-                width=650,   # makes square plot
+                width=650,
                 height=650,
             )
-    
-            # Axis tick colours
-            fig.update_xaxes(tickfont=dict(color="black"), titlefont=dict(color="black"))
-            fig.update_yaxes(tickfont=dict(color="black"), titlefont=dict(color="black"))
-    
+            
+            fig.update_xaxes(
+                tickfont=dict(color="black"),
+                title_font=dict(color="black")
+            )
+            
+            fig.update_yaxes(
+                tickfont=dict(color="black"),
+                title_font=dict(color="black")
+            )
             # White border around selected marker
             fig.update_traces(
                 marker=dict(line=dict(width=1, color="white"))
