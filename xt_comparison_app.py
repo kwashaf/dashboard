@@ -2256,13 +2256,14 @@ def main():
         with center:
             st.image(fig_to_png_bytes(fig), width=1600)
     # ================================================================
-    # TAB 7 — Metric Scatter (FINAL POLISHED VERSION)
+    # TAB 7 — Metric Scatter (FINAL POLISHED & CORRECTED VERSION)
     # ================================================================
     with tab7:
         st.header("Interactive Metric Scatter Plot (Position + Minute Filtered)")
-        is_x_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_x])
-        is_y_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_y])
+    
+        # ------------------------------------------------------------
         # Filter dataset by selected position + minutes
+        # ------------------------------------------------------------
         df_filtered = player_stats.copy()
         df_filtered["minutes_played"] = pd.to_numeric(df_filtered["minutes_played"], errors="coerce")
         df_filtered = df_filtered[
@@ -2274,8 +2275,11 @@ def main():
             st.warning("No players meet the selected position and minute threshold.")
             st.stop()
     
+        # ------------------------------------------------------------
         # Metric selector
+        # ------------------------------------------------------------
         available_metrics = [m for m in SCATTER_METRIC_MAP if m in df_filtered.columns]
+    
         chosen = st.multiselect(
             "Select TWO metrics to plot:",
             options=[SCATTER_METRIC_MAP[m] for m in available_metrics],
@@ -2284,18 +2288,28 @@ def main():
     
         if len(chosen) == 2:
     
-            # Actual column names
+            # ------------------------------------------------------------
+            # Resolve metric_x / metric_y from DISPLAY NAMES → DATAFRAME KEYS
+            # ------------------------------------------------------------
             metric_x = resolve_metric(chosen[0])
             metric_y = resolve_metric(chosen[1])
-            
+    
             if metric_x is None or metric_y is None:
                 st.error("Error resolving metric names. Check SCATTER_METRIC_MAP.")
                 st.stop()
+    
+            # ------------------------------------------------------------
+            # Detect if these metrics should be displayed as %
+            # ------------------------------------------------------------
             is_x_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_x])
             is_y_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_y])
+    
+            # Filter dropped rows (no missing values)
             df_plot = df_filtered.dropna(subset=[metric_x, metric_y]).copy()
     
+            # ------------------------------------------------------------
             # Identify selected player row
+            # ------------------------------------------------------------
             df_plot["highlight"] = (
                 (df_plot["player_name"] == playername) &
                 (df_plot["team_name"] == team_choice)
@@ -2307,8 +2321,8 @@ def main():
                 df_plot,
                 x=metric_x,
                 y=metric_y,
-                hover_name="player_name",     # ONLY player name
-                hover_data={},                # no additional hover data
+                hover_name="player_name",            # ONLY player name
+                hover_data={},                       # no extra hover info
                 color=df_plot["highlight"].map({True: "Selected", False: "Other"}),
                 size=df_plot["highlight"].map({True: 26, False: 14}),
                 color_discrete_map={
@@ -2317,48 +2331,61 @@ def main():
                 }
             )
     
+            # ------------------------------------------------------------
             # Remove legend
+            # ------------------------------------------------------------
             fig.update_layout(showlegend=False)
     
-            # Title + global styling
+            # ------------------------------------------------------------
+            # Title + global layout
+            # ------------------------------------------------------------
             fig.update_layout(
                 title=f"{SCATTER_METRIC_MAP[metric_x]} vs {SCATTER_METRIC_MAP[metric_y]} — {position} only",
                 title_font=dict(color=TextColor, size=20),
-                title_x=0.52,                     # <-- center over plot area
+                title_x=0.52,                # center over plot area
                 title_xanchor="center",
+    
                 xaxis_title=SCATTER_METRIC_MAP[metric_x],
                 yaxis_title=SCATTER_METRIC_MAP[metric_y],
-                plot_bgcolor=PitchColor,
-                paper_bgcolor=BackgroundColor,
+    
+                plot_bgcolor=PitchColor,     # inner plot background
+                paper_bgcolor=BackgroundColor,  # outer background
+    
                 font=dict(color=TextColor),
+    
                 width=1000,
                 height=650,
                 margin=dict(l=80, r=40, t=80, b=80)
             )
     
-            # Axis styling (INCREASE FONT + REMOVE GRIDLINES)
-            # X-Axis formatting
+            # ------------------------------------------------------------
+            # Axis formatting (increase font + remove grid + % formatting)
+            # ------------------------------------------------------------
             fig.update_xaxes(
                 title_font=dict(color=TextColor, size=14),
                 tickfont=dict(color=TextColor, size=14),
                 showgrid=False,
                 tickformat=".0%" if is_x_percent else None
             )
-            
+    
             fig.update_yaxes(
                 title_font=dict(color=TextColor, size=14),
                 tickfont=dict(color=TextColor, size=14),
                 showgrid=False,
                 tickformat=".0%" if is_y_percent else None
             )
-                
-            # Highlight selected player + hover
+    
+            # ------------------------------------------------------------
+            # Highlight selected player + hover only name
+            # ------------------------------------------------------------
             fig.update_traces(
                 marker=dict(line=dict(width=1.5, color="white")),
                 hovertemplate="%{hovertext}<extra></extra>"
             )
     
-            # Add top-left logo *inside* the plot
+            # ------------------------------------------------------------
+            # Add logo inside the plot (top-left, inside axis)
+            # ------------------------------------------------------------
             fig.add_layout_image(
                 dict(
                     source=wtaimaged,
@@ -2374,6 +2401,9 @@ def main():
                 )
             )
     
+            # ------------------------------------------------------------
+            # Display chart
+            # ------------------------------------------------------------
             st.plotly_chart(fig, use_container_width=False)
     
         else:
