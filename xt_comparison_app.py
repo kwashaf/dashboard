@@ -423,9 +423,9 @@ def create_defensive_actions_figure(
         frameon=False
     )
 
-    add_image(teamimage, fig, left=0.36, bottom=0.75, width=0.05)
-    add_image(teamimage, fig, left=0.66, bottom=0.75, width=0.05)
-    add_image(wtaimaged, fig, left=0.49, bottom=0.66, width=0.06)
+    add_image(teamimage, fig, left=0.35, bottom=0.75, width=0.05)
+    add_image(teamimage, fig, left=0.59, bottom=0.75, width=0.05)
+    add_image(wtaimaged, fig, left=0.47, bottom=0.66, width=0.06)
 
     return fig
 
