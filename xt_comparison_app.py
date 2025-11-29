@@ -2295,58 +2295,59 @@ def main():
                 }
             )
     
-            # ------------------------------------------------------------
-            # Remove legend completely
-            # ------------------------------------------------------------
+            # Remove legend
             fig.update_layout(showlegend=False)
     
-            # ------------------------------------------------------------
-            # Add custom title (in TextColor)
-            # ------------------------------------------------------------
+            # Title + global styling
             fig.update_layout(
                 title=f"{SCATTER_METRIC_MAP[metric_x]} vs {SCATTER_METRIC_MAP[metric_y]} — {position} only",
                 title_font=dict(color=TextColor, size=20),
+                title_x=0.5,                      # <-- centered title
                 xaxis_title=SCATTER_METRIC_MAP[metric_x],
                 yaxis_title=SCATTER_METRIC_MAP[metric_y],
                 plot_bgcolor=PitchColor,
                 paper_bgcolor=BackgroundColor,
                 font=dict(color=TextColor),
-                width=1000,   # wider plot
-                height=650,   # keep height
+                width=1000,
+                height=650,
                 margin=dict(l=80, r=40, t=80, b=80)
             )
     
-            # Axis + grid styling
+            # Axis styling (INCREASE FONT + REMOVE GRIDLINES)
             fig.update_xaxes(
                 title_font=dict(color=TextColor, size=14),
-                tickfont=dict(color=TextColor, size=14)
+                tickfont=dict(color=TextColor, size=14),
+                showgrid=False               # <-- remove gridlines
             )
-            
+    
             fig.update_yaxes(
                 title_font=dict(color=TextColor, size=14),
-                tickfont=dict(color=TextColor, size=14)
+                tickfont=dict(color=TextColor, size=14),
+                showgrid=False               # <-- remove gridlines
             )
-            
-            # Highlight selected player + ONLY show player_name on hover
+    
+            # Highlight selected player + hover
             fig.update_traces(
                 marker=dict(line=dict(width=1.5, color="white")),
-                hovertemplate="%{hovertext}<extra></extra>"   # use the existing hovertext (player_name only)
+                hovertemplate="%{hovertext}<extra></extra>"
             )
+    
+            # Add top-left logo *inside* the plot
             fig.add_layout_image(
                 dict(
-                    source=wtaimaged,     # <--- USE PIL IMAGE DIRECTLY
-                    xref="paper", 
-                    yref="paper",
-                    x=0.01,               # top-left of plot (inside axis)
+                    source=wtaimaged,
+                    xref="paper", yref="paper",
+                    x=0.01,
                     y=0.99,
-                    sizex=0.20,           # % of plot width
-                    sizey=0.20,           # % of plot height
+                    sizex=0.20,
+                    sizey=0.20,
                     xanchor="left",
                     yanchor="top",
                     opacity=0.5,
-                    layer="above"
+                    layer="above",
                 )
-            )    
+            )
+    
             st.plotly_chart(fig, use_container_width=False)
     
         else:
