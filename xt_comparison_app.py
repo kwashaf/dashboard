@@ -349,7 +349,7 @@ def create_defensive_actions_figure(
         ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.3)
 
     legend_elements = [
-        Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle),
+        Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle'),
         Line2D([0], [0], marker='s', color='none', markerfacecolor='green', label='Aerial')
     ]
     legend = ax.legend(
