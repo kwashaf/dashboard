@@ -11,6 +11,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgba
 from PIL import Image
 from urllib.request import urlopen
+import plotly.express as px
 
 from mplsoccer import VerticalPitch, PyPizza, add_image
 # -----------------------------------------------------------------------------
@@ -2238,21 +2239,31 @@ def main():
         left, center, right = st.columns([1, 3, 1])
         with center:
             st.image(fig_to_png_bytes(fig), width=1600)
-# ================================================================
-# TAB 7 — Metric Scatter
-# ================================================================
+    # ================================================================
+    # TAB 7 — Metric Scatter (Interactive Hover)
+    # ================================================================
     with tab7:
-        st.header("Interactive Metric Scatter Plot")
+        st.header("Interactive Metric Scatter Plot (Position + Minute Filtered)")
     
-        df_scatter = player_stats.copy()
+        # Filter player_stats to same position AND minute threshold
+        df_filtered = player_stats.copy()
+        df_filtered["minutes_played"] = pd.to_numeric(df_filtered["minutes_played"], errors="coerce")
     
-        # Ensure we keep only numeric metric columns
+        df_filtered = df_filtered[
+            (df_filtered["position_group"] == position) &
+            (df_filtered["minutes_played"] >= minuteinput)
+        ].copy()
+    
+        if df_filtered.empty:
+            st.warning("No players meet the selected position + minute threshold.")
+            st.stop()
+    
+        # Available metrics that exist in the filtered dataset
         available_metrics = [
             col for col in SCATTER_METRIC_MAP.keys()
-            if col in df_scatter.columns
+            if col in df_filtered.columns
         ]
     
-        # Multi-select: choose 2 metrics
         chosen = st.multiselect(
             "Select TWO metrics to plot:",
             options=[SCATTER_METRIC_MAP[m] for m in available_metrics],
@@ -2260,78 +2271,56 @@ def main():
         )
     
         if len(chosen) == 2:
-            # Convert display names → column names
+    
+            # Map display names → actual dataset column names
             metric_x = [k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[0]][0]
             metric_y = [k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[1]][0]
     
-            # Drop rows missing either metric
-            df_plot = df_scatter.dropna(subset=[metric_x, metric_y]).copy()
+            df_plot = df_filtered.dropna(subset=[metric_x, metric_y]).copy()
     
-            # Selected player's row
+            # Selected-player mask
             mask_player = (
                 (df_plot["player_name"] == playername) &
-                (df_plot["team_name"] == team_choice) &
-                (df_plot["position_group"] == position)
+                (df_plot["team_name"] == team_choice)
             )
     
-            # Build the figure
-            fig, ax = plt.subplots(figsize=(10, 7))
-            fig.patch.set_facecolor(PitchColor)
-            ax.set_facecolor(PitchColor)
+            df_plot["is_selected"] = mask_player
     
-            # Other players
-            others = df_plot[~mask_player]
-            ax.scatter(
-                others[metric_x],
-                others[metric_y],
-                color="black",
-                s=50,
-                alpha=0.8,
-                label="Other Players"
+            # ------------------------------
+            # INTERACTIVE PLOTLY SCATTER
+            # ------------------------------
+            import plotly.express as px
+    
+            fig = px.scatter(
+                df_plot,
+                x=metric_x,
+                y=metric_y,
+                color=df_plot["is_selected"].map({True: "Selected Player", False: "Other Players"}),
+                hover_data=["player_name", "team_name"],
+                size=df_plot["is_selected"].map({True: 18, False: 10}),
+                color_discrete_map={
+                    "Selected Player": "red",
+                    "Other Players": "black",
+                },
             )
-    
-            # Selected player
-            selected = df_plot[mask_player]
-            ax.scatter(
-                selected[metric_x],
-                selected[metric_y],
-                color="red",
-                s=120,
-                edgecolor="white",
-                linewidth=1.2,
-                label=playername,
-                zorder=3,
-            )
-    
-            # Label for selected player
-            if not selected.empty:
-                ax.text(
-                    selected[metric_x].iloc[0] + 0.01,
-                    selected[metric_y].iloc[0] + 0.01,
-                    playername,
-                    color="red",
-                    weight="bold"
-                )
     
             # Axis labels
-            ax.set_xlabel(SCATTER_METRIC_MAP[metric_x], fontsize=12, color="black")
-            ax.set_ylabel(SCATTER_METRIC_MAP[metric_y], fontsize=12, color="black")
-    
-            ax.tick_params(colors="black")
-            ax.grid(True, color="white", alpha=0.4)
-    
-            st.pyplot(fig)
-    
-            # Tooltip hover (Streamlit native)
-            st.dataframe(
-                df_plot[[ "player_name", "team_name", metric_x, metric_y ]]
-                .rename(columns={
-                    metric_x: SCATTER_METRIC_MAP[metric_x],
-                    metric_y: SCATTER_METRIC_MAP[metric_y],
-                })
+            fig.update_layout(
+                xaxis_title=SCATTER_METRIC_MAP[metric_x],
+                yaxis_title=SCATTER_METRIC_MAP[metric_y],
+                plot_bgcolor=PitchColor,
+                paper_bgcolor=PitchColor,
+                font_color="black",
             )
     
+            # Larger highlight border for selected player
+            fig.update_traces(
+                marker=dict(line=dict(width=1, color="white"))
+            )
+    
+            st.plotly_chart(fig, use_container_width=True)
+    
         else:
-            st.info("Please select **exactly two** metrics.")
+            st.info("Please select exactly two metrics.")
 if __name__ == "__main__":
     main()
