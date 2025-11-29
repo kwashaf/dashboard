@@ -257,7 +257,16 @@ def create_defensive_actions_figure(
         (allevents['playerName'] == playername) &
         (allevents['team_name'] == team_choice)
     ].copy()
-
+    extra_types = ['Ball recovery', 'Interception', 'Attempt Saved']
+    player_extra = matchdata.loc[
+        (matchdata['playerName'] == playername) &
+        (matchdata['team_name'] == team_choice) &
+        (matchdata['typeId'].isin(extra_types)) &
+        (matchdata['x'] <= 50)    # defensive half only
+    ].copy()
+    
+    player_extra["x"] = pd.to_numeric(player_extra["x"], errors="coerce")
+    player_extra["y"] = pd.to_numeric(player_extra["y"], errors="coerce")
     # ---------------------------
     # 2. SUMMARY STATS
     # ---------------------------
@@ -398,7 +407,7 @@ def create_defensive_actions_figure(
     # ---------------------------
     # 5. TITLE + NOTES
     # ---------------------------
-    ax.text(50,60, 'Defensive duel success within defensive half', fontsize=8, color='black', ha='center', va='center')
+    ax.text(50,60, 'Orange circles show ball recoveries, blocks & interceptions', fontsize=8, color='black', ha='center', va='center')
     ax.text(50,63, 'Zones are split into 5 zones across the pitch, and penalty box', fontsize=8, color='black', ha='center', va='center')
     ax.text(50,66, 'Data from Opta - number in brackets is league average for that playing position', fontsize=8, color='black', ha='center', va='center')
     # ---------------------------
@@ -410,7 +419,15 @@ def create_defensive_actions_figure(
         marker = markers.get(ev['typeId'], 'o')
         color = 'green' if ev['is_success'] else 'red'
         ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.3)
-
+    for _, ev in player_extra.iterrows():
+        ax.scatter(
+            ev['y'], ev['x'],
+            s=25,
+            color='orange',
+            marker='o',
+            edgecolors='none',
+            alpha=0.3
+        )
     legend_elements = [
         Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle'),
         Line2D([0], [0], marker='s', color='none', markerfacecolor='green', label='Aerial')
