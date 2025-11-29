@@ -2240,12 +2240,12 @@ def main():
         with center:
             st.image(fig_to_png_bytes(fig), width=1600)
     # ================================================================
-    # TAB 7 — Metric Scatter (FINAL VERSION)
+    # TAB 7 — Metric Scatter (FINAL POLISHED VERSION)
     # ================================================================
     with tab7:
         st.header("Interactive Metric Scatter Plot (Position + Minute Filtered)")
     
-        # Filter by selected position AND minute threshold
+        # Filter dataset by selected position + minutes
         df_filtered = player_stats.copy()
         df_filtered["minutes_played"] = pd.to_numeric(df_filtered["minutes_played"], errors="coerce")
         df_filtered = df_filtered[
@@ -2267,70 +2267,75 @@ def main():
     
         if len(chosen) == 2:
     
-            # Get actual dataset column names
+            # Actual column names
             metric_x = next(k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[0])
             metric_y = next(k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[1])
     
             df_plot = df_filtered.dropna(subset=[metric_x, metric_y]).copy()
     
+            # Identify selected player row
             df_plot["highlight"] = (
                 (df_plot["player_name"] == playername) &
                 (df_plot["team_name"] == team_choice)
             )
     
-            # ---- INTERACTIVE PLOTLY SCATTER ----
             import plotly.express as px
     
             fig = px.scatter(
                 df_plot,
                 x=metric_x,
                 y=metric_y,
-                color=df_plot["highlight"].map({True: "Selected Player", False: "Other Players"}),
-                hover_name="player_name",     # ONLY the player name
-                hover_data={},                # remove all additional hover fields
-                size=df_plot["highlight"].map({True: 24, False: 13}),
+                hover_name="player_name",     # ONLY player name
+                hover_data={},                # no additional hover data
+                color=df_plot["highlight"].map({True: "Selected", False: "Other"}),
+                size=df_plot["highlight"].map({True: 26, False: 14}),
                 color_discrete_map={
-                    "Selected Player": "red",
-                    "Other Players": "black",
+                    "Selected": "red",
+                    "Other": "black",
                 }
             )
     
-            # ---- styling ----
+            # ------------------------------------------------------------
+            # Remove legend completely
+            # ------------------------------------------------------------
+            fig.update_layout(showlegend=False)
+    
+            # ------------------------------------------------------------
+            # Add custom title (in TextColor)
+            # ------------------------------------------------------------
             fig.update_layout(
+                title=f"{SCATTER_METRIC_MAP[metric_x]} vs {SCATTER_METRIC_MAP[metric_y]} — {position} only",
+                title_font=dict(color=TextColor, size=20),
                 xaxis_title=SCATTER_METRIC_MAP[metric_x],
                 yaxis_title=SCATTER_METRIC_MAP[metric_y],
-                plot_bgcolor=PitchColor,      # chart background
-                paper_bgcolor=BackgroundColor, # full page background around chart
-                font=dict(color=TextColor),   # ALL text (axis, legend, labels)
-                width=750,   # slightly wider
-                height=650,  # preserve height
-                legend=dict(
-                    bgcolor=PitchColor,
-                    bordercolor=TextColor,
-                    borderwidth=1
-                )
+                plot_bgcolor=PitchColor,
+                paper_bgcolor=BackgroundColor,
+                font=dict(color=TextColor),
+                width=1000,   # wider plot
+                height=650,   # keep height
+                margin=dict(l=80, r=40, t=80, b=80)
             )
     
-            # Axis tick + title colors
+            # Axis + grid styling
             fig.update_xaxes(
+                showgrid=False,
                 tickfont=dict(color=TextColor),
-                title_font=dict(color=TextColor),
-                gridcolor=TextColor,   # subtle grid
-                gridwidth=0.2,
+                title_font=dict(color=TextColor)
             )
-    
+            
             fig.update_yaxes(
+                showgrid=False,
                 tickfont=dict(color=TextColor),
-                title_font=dict(color=TextColor),
-                gridcolor=TextColor,
-                gridwidth=0.2,
+                title_font=dict(color=TextColor)
             )
-    
-            # White border around selected marker
+            
+            # Highlight selected player + ONLY show player_name on hover
             fig.update_traces(
-                marker=dict(line=dict(width=1.5, color="white"))
+                marker=dict(line=dict(width=1.5, color="white")),
+                hovertext=df_plot["player_name"],             # exact hover name
+                hovertemplate="%{hovertext}<extra></extra>"   # removes ALL other hover info
             )
-    
+                
             st.plotly_chart(fig, use_container_width=False)
     
         else:
