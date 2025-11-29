@@ -301,35 +301,43 @@ def create_defensive_actions_figure(
     for v in band_lines:
         ax.axvline(v, ymin=0.17, ymax=0.50, color='blue', linestyle='--', alpha=0.3)
 
+    # ---------------------------------------------------------
+    # 4. TITLE (new, as requested)
+    # ---------------------------------------------------------
+    ax.set_title(
+        f"{playername} | Defensive Zone Success as {position}",
+        fontsize=14,
+        pad=10,
+        color=TextColor,
+    )
+
     # ---------------------------
     # 4. PLACE TEXT FOR ZONES
     # ---------------------------
-    zone_centers = {
-        2: 89, 3: 70, 4: 50, 5: 30, 6: 11
-    }
 
+    zone_centers = {2: 89, 3: 70, 4: 50, 5: 30, 6: 11}
+    
     for zone in range(2, 7):
         x = zone_centers[zone]
-        player_val = int(zone_summary_player.loc[zone_summary_player.zone == zone, "total"])
-        league_val = zone_summary_all.loc[zone_summary_all.zone == zone, "rate"].iloc[0]
-
-        ax.text(x, 51, f"{player_val}", fontsize=10, ha='center', weight='bold')
-        ax.text(x, 53.5, f"({league_val:.1f}%)", fontsize=8, ha='center')
-
-    # Penalty box zone
-    player_val = int(zone_summary_player.loc[zone_summary_player.zone == 1, "total"])
-    league_val = zone_summary_all.loc[zone_summary_all.zone == 1, "rate"].iloc[0]
-
-    ax.text(50, 13, f"{player_val}", fontsize=10, ha='center', weight='bold')
-    ax.text(50, 15.5, f"({league_val:.1f}%)", fontsize=8, ha='center')
-
+    
+        league_rate = zone_summary_all.loc[zone_summary_all.zone == zone, "rate"].iloc[0]
+        player_rate = zone_summary_player.loc[zone_summary_player.zone == zone, "rate"].iloc[0]
+    
+        ax.text(x, 53.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
+        ax.text(x, 51, f"{player_rate:.1f}%", fontsize=10, weight='bold', ha='center')
+    
+    # Penalty box
+    league_rate = zone_summary_all.loc[zone_summary_all.zone == 1, "rate"].iloc[0]
+    player_rate = zone_summary_player.loc[zone_summary_player.zone == 1, "rate"].iloc[0]
+    
+    ax.text(50, 15.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
+    ax.text(50, 13, f"{player_rate:.1f}%", fontsize=10, weight='bold', ha='center')
     # ---------------------------
     # 5. TITLE + NOTES
     # ---------------------------
-    ax.text(50, 60, "Defensive Duel Success by Zone", fontsize=10, ha='center')
-    ax.text(50, 63, "Zones split horizontally + penalty box", fontsize=8, ha='center')
-    ax.text(50, 66, "League Avg in brackets • Data: Opta", fontsize=8, ha='center')
-
+    ax.text(50,60, 'Defensive duel success within defensive half', fontsize=8, color='black', ha='center', va='center')
+    ax.text(50,63, 'Zones are split into 5 zones across the pitch, and penalty box', fontsize=8, color='black', ha='center', va='center')
+    ax.text(50,66, 'Data from Opta - number in brackets is league average for that playing position', fontsize=8, color='black', ha='center', va='center')
     # ---------------------------
     # 6. SCATTER EVENTS
     # ---------------------------
@@ -344,7 +352,13 @@ def create_defensive_actions_figure(
         Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle/Challenge'),
         Line2D([0], [0], marker='s', color='none', markerfacecolor='green', label='Aerial')
     ]
-    ax.legend(handles=legend_elements, loc='upper right')
+    legend = ax.legend(
+        handles=legend_elements,
+        fontsize=6,
+        loc='center left',
+        bbox_to_anchor=(0.92, 0.63),   # adjust to sit right of WTA logo
+        frameon=False
+    )
 
     add_image(teamimage, fig, left=0.36, bottom=0.75, width=0.05)
     add_image(wtaimaged, fig, left=0.49, bottom=0.66, width=0.04)
