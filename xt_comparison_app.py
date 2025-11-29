@@ -315,6 +315,7 @@ def create_defensive_actions_figure(
     # 4. PLACE TEXT FOR ZONES
     # ---------------------------
 
+
     zone_centers = {2: 89, 3: 70, 4: 50, 5: 30, 6: 11}
     
     for zone in range(2, 7):
@@ -323,15 +324,47 @@ def create_defensive_actions_figure(
         league_rate = zone_summary_all.loc[zone_summary_all.zone == zone, "rate"].iloc[0]
         player_rate = zone_summary_player.loc[zone_summary_player.zone == zone, "rate"].iloc[0]
     
-        ax.text(x, 53.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
-        ax.text(x, 51, f"{player_rate:.1f}%", fontsize=10, weight='bold', ha='center')
+        # Choose colour based on comparison
+        if player_rate > league_rate:
+            rate_color = "green"
+        elif player_rate < league_rate:
+            rate_color = "red"
+        else:
+            rate_color = "black"  # optional
     
-    # Penalty box
+        # league average
+        ax.text(x, 53.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
+    
+        # player percentage (with conditional colour)
+        ax.text(
+            x, 51,
+            f"{player_rate:.1f}%",
+            fontsize=10,
+            weight='bold',
+            ha='center',
+            color=rate_color
+        )
+    
+    # Penalty box (zone 1)
     league_rate = zone_summary_all.loc[zone_summary_all.zone == 1, "rate"].iloc[0]
     player_rate = zone_summary_player.loc[zone_summary_player.zone == 1, "rate"].iloc[0]
     
+    if player_rate > league_rate:
+        rate_color = "green"
+    elif player_rate < league_rate:
+        rate_color = "red"
+    else:
+        rate_color = "black"
+    
     ax.text(50, 15.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
-    ax.text(50, 13, f"{player_rate:.1f}%", fontsize=10, weight='bold', ha='center')
+    ax.text(
+        50, 13,
+        f"{player_rate:.1f}%",
+        fontsize=10,
+        weight='bold',
+        ha='center',
+        color=rate_color
+    )
     # ---------------------------
     # 5. TITLE + NOTES
     # ---------------------------
@@ -356,7 +389,7 @@ def create_defensive_actions_figure(
         handles=legend_elements,
         fontsize=6,
         loc='center left',
-        bbox_to_anchor=(0.775, 0.58),   # adjust to sit right of WTA logo
+        bbox_to_anchor=(0.79, 0.58),   # adjust to sit right of WTA logo
         frameon=False
     )
 
