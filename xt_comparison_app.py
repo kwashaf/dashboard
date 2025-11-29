@@ -178,7 +178,22 @@ SCATTER_METRIC_MAP = {
     "shot_quality": "Shot Quality %",
     "box_touches_per_shot": "Touches in Box per Shot",
 }
+
+def resolve_metric(display_label: str) -> str:
+    """
+    Converts a display label like 'Pass Completion %'
+    into its internal dataframe key like 'pass_completion'.
+    """
+    for key, label in SCATTER_METRIC_MAP.items():
+        if label == display_label:
+            return key
+    return None
+
 def metric_is_percent(display_name: str) -> bool:
+    """
+    Determines if a metric should be shown as a percentage.
+    Any metric whose display name includes '%' is considered a percent metric.
+    """
     return "%" in display_name
 # -----------------------------------------------------------------------------
 # PLAYER PROFILING CONFIG
@@ -2270,9 +2285,14 @@ def main():
         if len(chosen) == 2:
     
             # Actual column names
-            metric_x = next(k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[0])
-            metric_y = next(k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[1])
-    
+            metric_x = resolve_metric(chosen[0])
+            metric_y = resolve_metric(chosen[1])
+            
+            if metric_x is None or metric_y is None:
+                st.error("Error resolving metric names. Check SCATTER_METRIC_MAP.")
+                st.stop()
+            is_x_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_x])
+            is_y_percent = metric_is_percent(SCATTER_METRIC_MAP[metric_y])
             df_plot = df_filtered.dropna(subset=[metric_x, metric_y]).copy()
     
             # Identify selected player row
@@ -2325,7 +2345,6 @@ def main():
                 tickformat=".0%" if is_x_percent else None
             )
             
-            # Y-Axis formatting
             fig.update_yaxes(
                 title_font=dict(color=TextColor, size=14),
                 tickfont=dict(color=TextColor, size=14),
