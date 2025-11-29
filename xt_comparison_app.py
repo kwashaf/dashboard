@@ -2240,7 +2240,7 @@ def main():
         with center:
             st.image(fig_to_png_bytes(fig), width=1600)
     # ================================================================
-    # TAB 7 — Metric Scatter (Interactive Hover — Clean Version)
+    # TAB 7 — Metric Scatter (FINAL VERSION)
     # ================================================================
     with tab7:
         st.header("Interactive Metric Scatter Plot (Position + Minute Filtered)")
@@ -2267,13 +2267,12 @@ def main():
     
         if len(chosen) == 2:
     
-            # Get actual column names
+            # Get actual dataset column names
             metric_x = next(k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[0])
             metric_y = next(k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[1])
     
             df_plot = df_filtered.dropna(subset=[metric_x, metric_y]).copy()
     
-            # Identify selected player
             df_plot["highlight"] = (
                 (df_plot["player_name"] == playername) &
                 (df_plot["team_name"] == team_choice)
@@ -2287,38 +2286,49 @@ def main():
                 x=metric_x,
                 y=metric_y,
                 color=df_plot["highlight"].map({True: "Selected Player", False: "Other Players"}),
-                hover_name="player_name",      # ONLY player_name shown
-                hover_data={},                 # remove all other hover fields
-                size=df_plot["highlight"].map({True: 22, False: 12}),
+                hover_name="player_name",     # ONLY the player name
+                hover_data={},                # remove all additional hover fields
+                size=df_plot["highlight"].map({True: 24, False: 13}),
                 color_discrete_map={
                     "Selected Player": "red",
                     "Other Players": "black",
                 }
             )
     
-            # ---- MAKE AXIS LABELS VISIBLE & CLEAN ----
+            # ---- styling ----
             fig.update_layout(
                 xaxis_title=SCATTER_METRIC_MAP[metric_x],
                 yaxis_title=SCATTER_METRIC_MAP[metric_y],
-                plot_bgcolor=PitchColor,
-                paper_bgcolor=PitchColor,
-                font=dict(color="black"),
-                width=650,
-                height=650,
+                plot_bgcolor=PitchColor,      # chart background
+                paper_bgcolor=BackgroundColor, # full page background around chart
+                font=dict(color=TextColor),   # ALL text (axis, legend, labels)
+                width=750,   # slightly wider
+                height=650,  # preserve height
+                legend=dict(
+                    bgcolor=PitchColor,
+                    bordercolor=TextColor,
+                    borderwidth=1
+                )
             )
-            
+    
+            # Axis tick + title colors
             fig.update_xaxes(
-                tickfont=dict(color="black"),
-                title_font=dict(color="black")
+                tickfont=dict(color=TextColor),
+                title_font=dict(color=TextColor),
+                gridcolor=TextColor,   # subtle grid
+                gridwidth=0.2,
             )
-            
+    
             fig.update_yaxes(
-                tickfont=dict(color="black"),
-                title_font=dict(color="black")
+                tickfont=dict(color=TextColor),
+                title_font=dict(color=TextColor),
+                gridcolor=TextColor,
+                gridwidth=0.2,
             )
+    
             # White border around selected marker
             fig.update_traces(
-                marker=dict(line=dict(width=1, color="white"))
+                marker=dict(line=dict(width=1.5, color="white"))
             )
     
             st.plotly_chart(fig, use_container_width=False)
