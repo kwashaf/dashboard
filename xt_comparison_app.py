@@ -103,6 +103,81 @@ def fig_to_png_bytes(fig):
     buf.seek(0)
     return buf
 
+# ---------------------------------------------------------
+# SCATTER METRIC LABEL MAP
+# ---------------------------------------------------------
+SCATTER_METRIC_MAP = {
+    "pass_completion": "Pass Completion %",
+    "pass_completion_final_third": "Final 3rd Pass Completion %",
+    "%_passes_are_progressive": "% of Passes are Progressive",
+    "attempted_passes_per_90": "Passes per 90",
+    "prog_passes_per_90": "Progressive Passes per 90",
+    "keyPasses_per_90": "Shot Assists per 90",
+    "assists_per_90": "Assists per 90",
+    "xA_per_90": "xA per 90",
+    "switches_per_90": "Switches per 90",
+    "passing_yards_per_90": "Passing Yards per 90",
+    "passing_threat_per_90": "Passing Threat per 90",
+    "dribbles_per_90": "Dribbles per 90",
+    "prog_carries_per_90": "Progressive Carries per 90",
+    "carries_to_final_third_per_90": "Carries to Final Third per 90",
+    "carrying_yards_per_90": "Carrying Yards per 90",
+    "ten_yard_carries_per_90": "Ten Yard + Carries per 90",
+    "carry_threat_per_90": "Carrying Threat per 90",
+    "fouled_per_90": "Fouls Won per 90",
+    "total_threat_created_per_90": "Threat Created per 90",
+    "touches_per_90": "Touches per 90",
+    "touches_in_final_third_per_90": "Final Third Touches per 90",
+    "touches_in_own_third_per_90": "Own Third Touches per 90",
+    "touches_in_middle_third_per_90": "Middle Third Touches per 90",
+    "touches_in_box_per_90": "Touches in Box per 90",
+    "received_passes_per_90": "Received Passes per 90",
+    "received_passes_final_third_per_90": "Received Passes in Final Third per 90",
+    "aerials_per_90": "Aerials per 90",
+    "def_aerials_per_90": "Defensive Aerials per 90",
+    "off_aerials_per_90": "Attacking Aerials per 90",
+    "tackles_per_90": "Tackles per 90",
+    "interceptions_per_90": "Interceptions per 90",
+    "opp_half_interceptions_per_90": "Opposition Half Interceptions per 90",
+    "ball_recoveries_per_90": "Ball Recoveries per 90",
+    "opp_half_ball_recoveries_per_90": "Opp Half Ball Recoveries per 90",
+    "clearances_per_90": "Clearances per 90",
+    "box_def_actions_per_90": "Box Defensive Actions per 90",
+    "sixbox_def_actions_per_90": "6-Yard Box Defensive Actions per 90",
+    "blocked_shots_per_90": "Blocked Shots per 90",
+    "last_man_per_90": "Last Man Actions per 90",
+    "errors_per_90": "Errors per 90",
+    "errors_leading_to_goal_per_90": "Errors Leading to Goal per 90",
+    "fouls_per_90": "Fouls per 90",
+    "ground_threat_prevented_per_90": "Ground Threat Prevented per 90",
+    "aerial_threat_prevented_per_90": "Aerial Threat Prevented per 90",
+    "total_threat_prevented_per_90": "Threat Prevented per 90",
+    "shots_per_90": "Shots per 90",
+    "shots_on_target_per_90": "Shots on Target per 90",
+    "xG_per_90": "xG per 90",
+    "xGOT_per_90": "xGOT per 90",
+    "goals_per_90": "Goals per 90",
+    "threat_value_per_90": "Player Impact per 90",
+    "attacking_actions_per_90": "Attacking Actions per 90",
+    "successful_attacking_actions_per_90": "Successful Attacking Actions per 90",
+    "defensive_actions_per_90": "Defensive Actions per 90",
+    "successful_defensive_actions_per_90": "Successful Defensive Actions per 90",
+    "%_def_actions_in_box": "% Defensive Actions in Box",
+    "%_def_actions_in_6box": "% Defensive Actions in 6-Yard Box",
+    "%_touches_in_own_third": "% Touches in Own Third",
+    "%_touches_in_middle_third": "% Touches in Middle Third",
+    "%_touches_in_final_third": "% Touches in Final Third",
+    "aerial_win_rate": "Aerial Win Rate %",
+    "def_aerial_win_rate": "Defensive Aerial Win Rate %",
+    "off_aerial_win_rate": "Offensive Aerial Win Rate %",
+    "tackle_win_rate": "Tackle Win Rate %",
+    "dribble_win_rate": "Dribble Success %",
+    "shot_accuracy": "Shot Accuracy %",
+    "shot_conversion": "Shot Conversion %",
+    "shot_quality": "Shot Quality %",
+    "box_touches_per_shot": "Touches in Box per Shot",
+}
+
 # -----------------------------------------------------------------------------
 # PLAYER PROFILING CONFIG
 # -----------------------------------------------------------------------------
@@ -1620,8 +1695,8 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3, tab4, tab5, tab6= st.tabs(
-        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions", "Metric Comparisons"]
     )
     # Init session state
     if "active_tab" not in st.session_state:
@@ -2163,5 +2238,100 @@ def main():
         left, center, right = st.columns([1, 3, 1])
         with center:
             st.image(fig_to_png_bytes(fig), width=1600)
+# ================================================================
+# TAB 7 — Metric Scatter
+# ================================================================
+    with tab7:
+        st.header("Interactive Metric Scatter Plot")
+    
+        df_scatter = player_stats.copy()
+    
+        # Ensure we keep only numeric metric columns
+        available_metrics = [
+            col for col in SCATTER_METRIC_MAP.keys()
+            if col in df_scatter.columns
+        ]
+    
+        # Multi-select: choose 2 metrics
+        chosen = st.multiselect(
+            "Select TWO metrics to plot:",
+            options=[SCATTER_METRIC_MAP[m] for m in available_metrics],
+            max_selections=2
+        )
+    
+        if len(chosen) == 2:
+            # Convert display names → column names
+            metric_x = [k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[0]][0]
+            metric_y = [k for k, v in SCATTER_METRIC_MAP.items() if v == chosen[1]][0]
+    
+            # Drop rows missing either metric
+            df_plot = df_scatter.dropna(subset=[metric_x, metric_y]).copy()
+    
+            # Selected player's row
+            mask_player = (
+                (df_plot["player_name"] == playername) &
+                (df_plot["team_name"] == team_choice) &
+                (df_plot["position_group"] == position)
+            )
+    
+            # Build the figure
+            fig, ax = plt.subplots(figsize=(10, 7))
+            fig.patch.set_facecolor(PitchColor)
+            ax.set_facecolor(PitchColor)
+    
+            # Other players
+            others = df_plot[~mask_player]
+            ax.scatter(
+                others[metric_x],
+                others[metric_y],
+                color="black",
+                s=50,
+                alpha=0.8,
+                label="Other Players"
+            )
+    
+            # Selected player
+            selected = df_plot[mask_player]
+            ax.scatter(
+                selected[metric_x],
+                selected[metric_y],
+                color="red",
+                s=120,
+                edgecolor="white",
+                linewidth=1.2,
+                label=playername,
+                zorder=3,
+            )
+    
+            # Label for selected player
+            if not selected.empty:
+                ax.text(
+                    selected[metric_x].iloc[0] + 0.01,
+                    selected[metric_y].iloc[0] + 0.01,
+                    playername,
+                    color="red",
+                    weight="bold"
+                )
+    
+            # Axis labels
+            ax.set_xlabel(SCATTER_METRIC_MAP[metric_x], fontsize=12, color="black")
+            ax.set_ylabel(SCATTER_METRIC_MAP[metric_y], fontsize=12, color="black")
+    
+            ax.tick_params(colors="black")
+            ax.grid(True, color="white", alpha=0.4)
+    
+            st.pyplot(fig)
+    
+            # Tooltip hover (Streamlit native)
+            st.dataframe(
+                df_plot[[ "player_name", "team_name", metric_x, metric_y ]]
+                .rename(columns={
+                    metric_x: SCATTER_METRIC_MAP[metric_x],
+                    metric_y: SCATTER_METRIC_MAP[metric_y],
+                })
+            )
+    
+        else:
+            st.info("Please select **exactly two** metrics.")
 if __name__ == "__main__":
     main()
