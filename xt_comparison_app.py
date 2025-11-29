@@ -299,7 +299,7 @@ def create_defensive_actions_figure(
     # Draw vertical band lines
     band_lines = [78.9, 60, 40, 21.1]
     for v in band_lines:
-        ax.axvline(v, ymin=0.17, ymax=0.50, color='blue', linestyle='--', alpha=0.3)
+        ax.axvline(v, ymin=0.185, ymax=0.50, color='blue', linestyle='--', alpha=0.3)
 
     # ---------------------------------------------------------
     # 4. TITLE (new, as requested)
