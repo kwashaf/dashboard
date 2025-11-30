@@ -407,7 +407,7 @@ def create_defensive_actions_figure(
     # ---------------------------
     # 5. TITLE + NOTES
     # ---------------------------
-    ax.text(50,61, 'Orange circles show other defensive actions that aren't duels', fontsize=8, color='black', ha='center', va='center')
+    ax.text(50,61, "Orange circles show other defensive actions that aren't duels", fontsize=8, color='black', ha='center', va='center')
     ax.text(50,64, 'Zones are split into 5 zones across the pitch, and penalty box', fontsize=8, color='black', ha='center', va='center')
     ax.text(50,67, 'Data from Opta - number in brackets is league average for that playing position', fontsize=8, color='black', ha='center', va='center')
     # ---------------------------
