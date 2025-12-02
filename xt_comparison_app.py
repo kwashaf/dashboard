@@ -268,8 +268,11 @@ def create_pass_and_carry_sonar(
             return
 
         df = data.copy()
-        df['hx'] = df['end_y'] - df['y']      # horizontal component
-        df['vy'] = df['end_x'] - df['x']      # vertical component
+        ASPECT = 105 / 68   # ≈ 1.5441176
+        
+        # Correct for rectangular pitch distortion
+        df['hx'] = df['end_y'] - df['y']
+        df['vy'] = (df['end_x'] - df['x']) / ASPECT
         
         df['angle'] = (np.degrees(np.arctan2(df['vy'], df['hx'])) + 360) % 360
 
