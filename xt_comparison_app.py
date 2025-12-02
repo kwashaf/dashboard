@@ -2821,9 +2821,9 @@ def main():
 
         st.image(fig_to_png_bytes(fig), width=1100)
 
-# ================================================================
-# TAB 10 — PLAYER SIMILARITY ENGINE
-# ================================================================
+    # ================================================================
+    # TAB 10 — PLAYER SIMILARITY ENGINE (EUCLIDEAN DISTANCE VERSION)
+    # ================================================================
     with tab10:
         st.header("Closest Player Comparables")
     
@@ -2849,7 +2849,7 @@ def main():
         # All percentile columns:
         pct_cols = [c for c in df.columns if c.endswith("__pct")]
     
-        # Remove threat_value_per_90 percentile if exists
+        # Remove threat_value_per_90 percentile if present
         pct_cols = [c for c in pct_cols if "threat_value_per_90" not in c.lower()]
     
         # Add required RAW touch-distribution columns
@@ -2877,7 +2877,7 @@ def main():
         # 2. Build feature matrix
         # -----------------------------
         from sklearn.preprocessing import StandardScaler
-        from sklearn.metrics.pairwise import cosine_similarity
+        from sklearn.metrics import pairwise_distances
     
         X = df[feature_cols].fillna(df[feature_cols].mean())
     
@@ -2897,29 +2897,54 @@ def main():
         player_vec = X_scaled[df.index.get_loc(player_index)]
     
         # -----------------------------
-        # 4. Compute cosine similarity
+        # 4. Compute Euclidean distance + convert to similarity
         # -----------------------------
-        sims = cosine_similarity([player_vec], X_scaled)[0]
+        distances = pairwise_distances([player_vec], X_scaled, metric="euclidean")[0]
+    
+        # Convert distance → similarity
+        # higher score = more similar (0–1 range)
+        sims = 1 / (1 + distances)
     
         df["similarity"] = sims
+    
+        # Sort descending, best matches first
         df_sorted = df.sort_values("similarity", ascending=False)
     
         # Exclude the player themselves
         df_comps = df_sorted[df_sorted.index != player_index].head(10)
     
         # -----------------------------
-        # 5. Display Results
+        # 5. Format + Display Results
         # -----------------------------
-        st.subheader(f"Top 10 Most Similar Players to **{playername}** ({position})")
+        df_display = df_comps.copy()
     
-        show_cols = [
-            "player_name", "team_name", "minutes_played", "similarity"
-        ]
+        # Round minutes
+        df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
+    
+        # Convert similarity to 0–100 score, 2 decimals
+        df_display["similarity"] = (df_display["similarity"] * 100).round(2)
+    
+        # Rename columns
+        df_display = df_display.rename(columns={
+            "player_name": "Player",
+            "team_name": "Team",
+            "minutes_played": "Minutes",
+            "similarity": "Similarity Score"
+        })
+    
+        # Only show these columns
+        final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
+    
+        st.subheader(f"Top 10 Most Similar Players to {playername} ({position})")
+    
         st.dataframe(
-            df_comps[show_cols].style.format({"similarity": "{:.3f}"}),
+            df_display[final_cols].style.format({
+                "Similarity Score": "{:.2f}"
+            }),
             use_container_width=True
         )
     
-        st.info("Similarity is based on percentile performance metrics + touch distribution profile.")
+        st.info("Similarity is based on percentile performance metrics + touch distribution profile (Euclidean distance method).")
+🎯 WHAT THIS FIXES
 if __name__ == "__main__":
     main()
