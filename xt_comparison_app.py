@@ -10,7 +10,8 @@ import matplotlib.colors as mcolors
 from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgba
 from matplotlib.lines import Line2D
-
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import cosine_similarity
 from PIL import Image
 from urllib.request import urlopen
 import plotly.express as px
@@ -2071,8 +2072,10 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
-        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions", "Metric Comparisons", "Defensive Actions", "Passes & Carries"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
+        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling",
+         "Shot Maps", "Creative Actions", "Metric Comparisons",
+         "Defensive Actions", "Passes & Carries", "Player Similarity"]
     )
     # Init session state
     if "active_tab" not in st.session_state:
@@ -2817,5 +2820,106 @@ def main():
         )
 
         st.image(fig_to_png_bytes(fig), width=1100)
+
+# ================================================================
+# TAB 10 — PLAYER SIMILARITY ENGINE
+# ================================================================
+    with tab10:
+        st.header("Closest Player Comparables")
+    
+        if not playername or not position:
+            st.warning("Please select a player and position.")
+            st.stop()
+    
+        # Filter stats to the chosen position + minute threshold
+        df = player_stats.copy()
+        df["minutes_played"] = pd.to_numeric(df["minutes_played"], errors="coerce")
+        df = df[
+            (df["position_group"] == position) &
+            (df["minutes_played"] >= minuteinput)
+        ].copy()
+    
+        if df.empty:
+            st.warning("No players available for similarity comparison.")
+            st.stop()
+    
+        # -----------------------------
+        # 1. Identify usable columns
+        # -----------------------------
+        # All percentile columns:
+        pct_cols = [c for c in df.columns if c.endswith("__pct")]
+    
+        # Remove threat_value_per_90 percentile if exists
+        pct_cols = [c for c in pct_cols if "threat_value_per_90" not in c.lower()]
+    
+        # Add required RAW touch-distribution columns
+        touch_cols = [
+            "%_touches_in_own_third",
+            "%_touches_in_middle_third",
+            "%_touches_in_final_third",
+        ]
+        touch_cols = [c for c in touch_cols if c in df.columns]
+    
+        feature_cols = pct_cols + touch_cols
+    
+        if len(feature_cols) == 0:
+            st.error("No valid features found for similarity modelling.")
+            st.stop()
+    
+        # Ensure numeric only
+        for c in feature_cols:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+    
+        # Drop rows missing all metrics
+        df = df.dropna(subset=feature_cols, how="all")
+    
+        # -----------------------------
+        # 2. Build feature matrix
+        # -----------------------------
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.metrics.pairwise import cosine_similarity
+    
+        X = df[feature_cols].fillna(df[feature_cols].mean())
+    
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+    
+        # -----------------------------
+        # 3. Identify selected player row
+        # -----------------------------
+        mask = (df["player_name"] == playername) & (df["team_name"] == team_choice)
+    
+        if mask.sum() == 0:
+            st.warning("Could not find matching player row in stats table.")
+            st.stop()
+    
+        player_index = df.index[mask][0]
+        player_vec = X_scaled[df.index.get_loc(player_index)]
+    
+        # -----------------------------
+        # 4. Compute cosine similarity
+        # -----------------------------
+        sims = cosine_similarity([player_vec], X_scaled)[0]
+    
+        df["similarity"] = sims
+        df_sorted = df.sort_values("similarity", ascending=False)
+    
+        # Exclude the player themselves
+        df_comps = df_sorted[df_sorted.index != player_index].head(10)
+    
+        # -----------------------------
+        # 5. Display Results
+        # -----------------------------
+        st.subheader(f"Top 10 Most Similar Players to **{playername}** ({position})")
+    
+        show_cols = [
+            "player_name", "team_name", "minutes_played", "similarity"
+        ]
+        st.dataframe(
+            df_comps[show_cols].style.format({"similarity": "{:.3f}"}),
+            use_container_width=True
+        )
+    
+        st.info("Similarity is based on percentile performance metrics + touch distribution profile.")
 if __name__ == "__main__":
     main()
