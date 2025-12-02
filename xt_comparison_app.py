@@ -2971,8 +2971,15 @@ def main():
         player_vec = X_scaled[df.index.get_loc(player_index)]
     
         # Euclidean distance → similarity
+        # ---------------------------------------------------------
+        # Euclidean distance → Logistic Similarity (0–100 scale)
+        # ---------------------------------------------------------
         distances = pairwise_distances([player_vec], X_scaled, metric="euclidean")[0]
-        sims = 1 / (1 + distances)
+        
+        k = 0.25  # logistic steepness parameter (tweakable)
+        
+        # logistic transformation
+        sims = 100 / (1 + np.exp(k * distances))
     
         df["similarity"] = sims
     
