@@ -2947,72 +2947,91 @@ def main():
     
         feature_cols = pct_cols + touch_cols
     
-        # Ensure numeric
+       # Ensure numeric
         for c in feature_cols:
             df[c] = pd.to_numeric(df[c], errors="coerce")
-    
+
+        # Drop players with no usable metrics at all
         df = df.dropna(subset=feature_cols, how="all")
-    
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.metrics import pairwise_distances
-    
-        X = df[feature_cols].fillna(df[feature_cols].mean())
-    
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-    
+
+        # --------------------------------------------
+        # 4b. Player-centric similarity in percentile space
+        # --------------------------------------------
+        # All feature columns are percentiles (0–100) or % values,
+        # so we normalise to 0–1 and measure RMS difference.
+        X = df[feature_cols].astype(float).clip(lower=0, upper=100)
+        X01 = X / 100.0  # 0–1 scale
+
         # Find selected player row
         mask = (df["player_name"] == playername) & (df["team_name"] == team_choice)
         if mask.sum() == 0:
             st.warning("Could not find matching player row in stats table.")
             st.stop()
-    
+
         player_index = df.index[mask][0]
-        player_vec = X_scaled[df.index.get_loc(player_index)]
-    
-        # Euclidean distance → similarity
-        # ---------------------------------------------------------
-        # Euclidean distance → Logistic Similarity (0–100 scale)
-        # ---------------------------------------------------------
-        distances = pairwise_distances([player_vec], X_scaled, metric="euclidean")[0]
-        
-        k = 0.25  # logistic steepness parameter (tweakable)
-        
-        # logistic transformation
-        sims = 100 / (1 + np.exp(k * distances))
-    
-        df["similarity"] = sims
-    
-        # Sort and remove the player
+        player_vec = X01.loc[player_index].to_numpy()
+
+        # Convert to numpy for vectorised distance calc
+        arr = X01.to_numpy()
+
+        # diff[i, j] = feature_j difference between player i and selected player
+        diff = arr - player_vec
+
+        # Handle missing values feature-wise:
+        # we only use metrics that exist for BOTH players.
+        valid = ~np.isnan(arr)
+        diff[~valid] = np.nan
+
+        # Number of metrics actually used per comparison
+        n_used = np.sum(~np.isnan(diff), axis=1)
+
+        # Root-mean-square difference across available metrics
+        with np.errstate(invalid="ignore"):
+            mean_sq = np.nansum(diff ** 2, axis=1) / np.where(n_used == 0, np.nan, n_used)
+            distance = np.sqrt(mean_sq)  # in [0, ~1+] before clipping
+
+        # Convert distance → similarity on 0–100 scale
+        similarity = (1.0 - distance) * 100.0
+        similarity = np.clip(similarity, 0.0, 100.0)
+
+        df["similarity"] = similarity
+
+        # Drop rows where we had no overlapping metrics
+        df = df[~df["similarity"].isna()].copy()
+
+        # Sort and remove the selected player
         df_sorted = df.sort_values("similarity", ascending=False)
         df_comps = df_sorted[df_sorted.index != player_index].head(10)
-    
+
         # --------------------------------------------
         # 5. Format output table
         # --------------------------------------------
         df_display = df_comps.copy()
-    
+
         df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
-        df_display["similarity"] = (df_display["similarity"] * 100).round(2)
-    
+
         df_display = df_display.rename(columns={
             "player_name": "Player",
             "team_name": "Team",
             "minutes_played": "Minutes",
             "similarity": "Similarity Score"
         })
-    
+
         final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
-    
+
         st.subheader(f"Top 10 Most Similar Players to {playername} ({position})")
-    
+
         st.dataframe(
             df_display[final_cols].style.format({
-                "Similarity Score": "{:.2f}"
+                "Similarity Score": "{:.1f}"
             }),
             use_container_width=True
         )
-    
-        st.info("Similarity computed using Euclidean distance on standardized percentile metrics + raw touch distribution.")
+
+        st.info(
+            "Similarity computed as 0–100 based on root-mean-square difference in percentile/"
+            "percentage metrics (0 = no similarity, 100 = identical profile)."
+        )
+
 if __name__ == "__main__":
     main()
