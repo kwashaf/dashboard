@@ -2852,7 +2852,7 @@ def main():
     
         available_leagues = [
             lg for lg in COMPARISON_MAP.keys()
-            if lg != competition  # exclude currently selected league
+            if lg != league_choice  # exclude currently selected league
         ]
     
         selected_extra_leagues = st.multiselect(
