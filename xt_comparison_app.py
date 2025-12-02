@@ -2814,6 +2814,6 @@ def main():
             TextColor=TextColor,
         )
 
-        st.image(fig_to_png_bytes(fig), width=1250)
+        st.image(fig_to_png_bytes(fig), width=1100)
 if __name__ == "__main__":
     main()
