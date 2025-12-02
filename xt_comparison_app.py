@@ -299,7 +299,10 @@ def create_pass_and_carry_sonar(
 
     fig, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
     fig.set_facecolor(BackgroundColor)
-
+    
+    # 🔥 Fix sonar distortion
+    for ax in axes:
+        ax.set_aspect('equal', adjustable='box')
     sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
     sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
 
