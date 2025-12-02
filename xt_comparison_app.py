@@ -857,7 +857,24 @@ def load_index_list():
 def list_parquet_files():
     files = load_index_list()
     return sorted([f for f in files if f.endswith(".parquet")])
-
+COMPARISON_MAP = {
+    "Premier League": "ENG1_2526",
+    "La Liga":        "SPA1_2526",
+    "Bundesliga":     "GER1_2526",
+    "Ligue 1":        "FRA1_2526",
+    "Serie A":        "ITA1_2526",
+    "League of Ireland": "IRE1_2025",
+    "Scottish Premiership": "SCO1_2526",
+    "Allsvenskan": "SWE1_2025",
+    "Austrian Bundesliga": "AUT1_2526",
+    "Pro League": "BEL1_2526",
+    "Superligaen": "DEN1_2526",
+    "Liga Portugal": "POR1_2526",
+    "Brasilerao": "BRA1_2025",
+    "Championship": "ENG2_2526",
+    "League One": "ENG3_2526",
+    "League Two": "ENG4_2526",
+}
 
 @st.cache_data
 def list_excel_files():
