@@ -2914,7 +2914,6 @@ def main():
         for col in pct_cols_raw:
             combined_df[col + "__pct"] = (
                 combined_df.groupby("position_group")[col]
-                [col]
                 .transform(lambda s: pct_0_to_100(s))
             )
     
