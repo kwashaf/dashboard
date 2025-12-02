@@ -2839,227 +2839,234 @@ def main():
         st.image(fig_to_png_bytes(fig), width=1100)
 
 
-    # TAB 10 — PLAYER SIMILARITY ENGINE (EUCLIDEAN DISTANCE VERSION)
+    # TAB 10 — PLAYER SIMILARITY ENGINE (RMS DISTANCE VERSION)
     # + MULTI-LEAGUE SUPPORT
     # ================================================================
     with tab10:
         st.header("Closest Player Comparables")
-    
+
         # --------------------------------------------
         # 0. League selector for additional datasets
         # --------------------------------------------
         st.subheader("Add Additional Leagues for Comparison")
-    
+
         available_leagues = [
             lg for lg in COMPARISON_MAP.keys()
             if lg != competition_choice  # exclude currently selected league
         ]
-    
+
         selected_extra_leagues = st.multiselect(
             "Select up to 4 additional leagues:",
             options=available_leagues,
             max_selections=4
         )
-    
+
         # --------------------------------------------
         # 1. Load current league data
         # --------------------------------------------
         df_main = player_stats.copy()
-    
+
+        # Normalise positions in the *main* league as well
+        position_replacements = {
+            "LMW": "LW",
+            "RMW": "RW",
+        }
+        if "position_group" in df_main.columns:
+            df_main["position_group"] = df_main["position_group"].replace(position_replacements)
+
         # --------------------------------------------
         # 2. Load extra league data files
         # --------------------------------------------
         @st.cache_data
-        def load_league_file(mapped_name):
+        def load_league_file(mapped_name: str) -> pd.DataFrame | None:
             files = list_excel_files()
             for f in files:
                 if mapped_name.lower() in f.lower():
                     df = pd.read_excel(f)
-        
-                    # ----------------------------------------
+
                     # Normalise positions AS SOON AS WE LOAD
-                    # ----------------------------------------
                     position_replacements = {
                         "LMW": "LW",
                         "RMW": "RW",
                     }
-        
-                    # Try to find a position column in this file
+
+                    # Try to find a position / position_group column in this file
                     pos_col = None
                     for c in df.columns:
                         if c.lower() in ["position_group", "position", "pos"]:
                             pos_col = c
                             break
-        
+
                     if pos_col is not None:
                         df[pos_col] = df[pos_col].replace(position_replacements)
-        
+
                     return df
-        
+
             return None
-    
-            # Combine all datasets
-            if extra_frames:
-                combined_df = pd.concat([df_main] + extra_frames, ignore_index=True)
-            else:
-                combined_df = df_main.copy()
-        
-            # --------------------------------------------
-            # 3. Apply consistent percentile transformations
-            # --------------------------------------------
-            def pct_0_to_100(s: pd.Series) -> pd.Series:
-                n = s.count()
-                if n <= 1:
-                    return pd.Series([0] * len(s), index=s.index, dtype=float)
-                return (s.rank(method="min") - 1) / (n - 1) * 100
-        
-            # Percentile-eligible columns
-            pct_cols_raw = [
-                c for c in combined_df.columns
-                if c not in [
-                    "player_name", "team_name", "position_group",
-                    "%_touches_in_own_third", "%_touches_in_middle_third",
-                    "%_touches_in_final_third", "minutes_played"
-                ]
-                and combined_df[c].dtype in ["float64", "int64"]
+
+        # Collect any extra league frames (already normalised)
+        extra_frames = []
+        for lg in selected_extra_leagues:
+            mapped = COMPARISON_MAP[lg]
+            df_extra = load_league_file(mapped)
+            if df_extra is not None:
+                extra_frames.append(df_extra)
+
+        # --------------------------------------------
+        # 3. Combine all datasets
+        # --------------------------------------------
+        if extra_frames:
+            combined_df = pd.concat([df_main] + extra_frames, ignore_index=True)
+        else:
+            combined_df = df_main.copy()
+
+        # --------------------------------------------
+        # 4. Apply consistent percentile transformations
+        # --------------------------------------------
+        def pct_0_to_100(s: pd.Series) -> pd.Series:
+            n = s.count()
+            if n <= 1:
+                return pd.Series([0] * len(s), index=s.index, dtype=float)
+            return (s.rank(method="min") - 1) / (n - 1) * 100
+
+        # Percentile-eligible columns
+        pct_cols_raw = [
+            c for c in combined_df.columns
+            if c not in [
+                "player_name", "team_name", "position_group",
+                "%_touches_in_own_third", "%_touches_in_middle_third",
+                "%_touches_in_final_third", "minutes_played"
             ]
-        
-            # Apply percentiles by position_group
-            for col in pct_cols_raw:
-                combined_df[col + "__pct"] = (
-                    combined_df.groupby("position_group")[col]
-                    .transform(lambda s: pct_0_to_100(s))
-                )
-        
-            # --------------------------------------------
-            # 4. Now proceed as before but use combined_df
-            # --------------------------------------------
-            df = combined_df.copy()
-            position_replacements = {
-                "LMW": "LW",
-                "RMW": "RW",
-            }
-        
-            # Safely detect the position column
-            pos_col = None
-            for c in df.columns:
-                if c.lower() in ["position", "pos"]:
-                    pos_col = c
-                    break
-        
-            if pos_col is not None:
-                df[pos_col] = df[pos_col].replace(position_replacements)
-            df["minutes_played"] = pd.to_numeric(df["minutes_played"], errors="coerce")
-            df = df[
-                (df["position_group"] == position) &
-                (df["minutes_played"] >= minuteinput)
-            ].copy()
-        
-            if df.empty:
-                st.warning("No players available for similarity comparison.")
-                st.stop()
-        
-            # Identify percentile columns
-            pct_cols = [c for c in df.columns if c.endswith("__pct")]
-        
-            # Remove threat_value if present
-            pct_cols = [c for c in pct_cols if "threat_value_per_90" not in c.lower()]
-        
-            # Add raw touch metrics
-            touch_cols = [
-                "%_touches_in_own_third",
-                "%_touches_in_middle_third",
-                "%_touches_in_final_third",
-            ]
-            touch_cols = [c for c in touch_cols if c in df.columns]
-        
-            feature_cols = pct_cols + touch_cols
-        
-           # Ensure numeric
-            for c in feature_cols:
-                df[c] = pd.to_numeric(df[c], errors="coerce")
-    
-            # Drop players with no usable metrics at all
-            df = df.dropna(subset=feature_cols, how="all")
-    
-            # --------------------------------------------
-            # 4b. Player-centric similarity in percentile space
-            # --------------------------------------------
-            # All feature columns are percentiles (0–100) or % values,
-            # so we normalise to 0–1 and measure RMS difference.
-            X = df[feature_cols].astype(float).clip(lower=0, upper=100)
-            X01 = X / 100.0  # 0–1 scale
-    
-            # Find selected player row
-            mask = (df["player_name"] == playername) & (df["team_name"] == team_choice)
-            if mask.sum() == 0:
-                st.warning("Could not find matching player row in stats table.")
-                st.stop()
-    
-            player_index = df.index[mask][0]
-            player_vec = X01.loc[player_index].to_numpy()
-    
-            # Convert to numpy for vectorised distance calc
-            arr = X01.to_numpy()
-    
-            # diff[i, j] = feature_j difference between player i and selected player
-            diff = arr - player_vec
-    
-            # Handle missing values feature-wise:
-            # we only use metrics that exist for BOTH players.
-            valid = ~np.isnan(arr)
-            diff[~valid] = np.nan
-    
-            # Number of metrics actually used per comparison
-            n_used = np.sum(~np.isnan(diff), axis=1)
-    
-            # Root-mean-square difference across available metrics
-            with np.errstate(invalid="ignore"):
-                mean_sq = np.nansum(diff ** 2, axis=1) / np.where(n_used == 0, np.nan, n_used)
-                distance = np.sqrt(mean_sq)  # in [0, ~1+] before clipping
-    
-            # Convert distance → similarity on 0–100 scale
-            similarity = (1.0 - distance) * 100.0
-            similarity = np.clip(similarity, 0.0, 100.0)
-    
-            df["similarity"] = similarity
-    
-            # Drop rows where we had no overlapping metrics
-            df = df[~df["similarity"].isna()].copy()
-    
-            # Sort and remove the selected player
-            df_sorted = df.sort_values("similarity", ascending=False)
-            df_comps = df_sorted[df_sorted.index != player_index].head(10)
-    
-            # --------------------------------------------
-            # 5. Format output table
-            # --------------------------------------------
-            df_display = df_comps.copy()
-    
-            df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
-    
-            df_display = df_display.rename(columns={
-                "player_name": "Player",
-                "team_name": "Team",
-                "minutes_played": "Minutes",
-                "similarity": "Similarity Score"
-            })
-    
-            final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
-    
-            st.subheader(f"Top 10 Most Similar Players to {playername} ({position})")
-    
-            st.dataframe(
-                df_display[final_cols].style.format({
-                    "Similarity Score": "{:.1f}"
-                }),
-                use_container_width=True
+            and combined_df[c].dtype in ["float64", "int64"]
+        ]
+
+        # Apply percentiles by position_group
+        for col in pct_cols_raw:
+            combined_df[col + "__pct"] = (
+                combined_df.groupby("position_group")[col]
+                .transform(lambda s: pct_0_to_100(s))
             )
-    
-            st.info(
-                "Similarity computed as 0–100 based on root-mean-square difference in percentile/"
-                "percentage metrics (0 = no similarity, 100 = identical profile)."
-            )
+
+        # --------------------------------------------
+        # 5. Filter for selected position + minutes
+        # --------------------------------------------
+        df = combined_df.copy()
+
+        # Make sure minutes are numeric
+        df["minutes_played"] = pd.to_numeric(df["minutes_played"], errors="coerce")
+        df = df[
+            (df["position_group"] == position) &
+            (df["minutes_played"] >= minuteinput)
+        ].copy()
+
+        if df.empty:
+            st.warning("No players available for similarity comparison.")
+            st.stop()
+
+        # --------------------------------------------
+        # 6. Build feature set (percentiles + raw touch %)
+        # --------------------------------------------
+        pct_cols = [c for c in df.columns if c.endswith("__pct")]
+
+        # Remove threat_value if present
+        pct_cols = [c for c in pct_cols if "threat_value_per_90" not in c.lower()]
+
+        # Add raw touch metrics
+        touch_cols = [
+            "%_touches_in_own_third",
+            "%_touches_in_middle_third",
+            "%_touches_in_final_third",
+        ]
+        touch_cols = [c for c in touch_cols if c in df.columns]
+
+        feature_cols = pct_cols + touch_cols
+
+        # Ensure numeric
+        for c in feature_cols:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+
+        # Drop players with no usable metrics at all
+        df = df.dropna(subset=feature_cols, how="all")
+
+        # --------------------------------------------
+        # 7. Player-centric similarity in percentile space
+        # --------------------------------------------
+        # All feature columns are percentiles (0–100) or % values,
+        # so we normalise to 0–1 and measure RMS difference.
+        X = df[feature_cols].astype(float).clip(lower=0, upper=100)
+        X01 = X / 100.0  # 0–1 scale
+
+        # Find selected player row
+        mask = (df["player_name"] == playername) & (df["team_name"] == team_choice)
+        if mask.sum() == 0:
+            st.warning("Could not find matching player row in stats table.")
+            st.stop()
+
+        player_index = df.index[mask][0]
+        player_vec = X01.loc[player_index].to_numpy()
+
+        # Convert to numpy for vectorised distance calc
+        arr = X01.to_numpy()
+
+        # diff[i, j] = feature_j difference between player i and selected player
+        diff = arr - player_vec
+
+        # Handle missing values feature-wise:
+        # we only use metrics that exist for BOTH players.
+        valid = ~np.isnan(arr)
+        diff[~valid] = np.nan
+
+        # Number of metrics actually used per comparison
+        n_used = np.sum(~np.isnan(diff), axis=1)
+
+        # Root-mean-square difference across available metrics
+        with np.errstate(invalid="ignore"):
+            mean_sq = np.nansum(diff ** 2, axis=1) / np.where(n_used == 0, np.nan, n_used)
+            distance = np.sqrt(mean_sq)  # in [0, ~1+] before clipping
+
+        # Convert distance → similarity on 0–100 scale
+        similarity = (1.0 - distance) * 100.0
+        similarity = np.clip(similarity, 0.0, 100.0)
+
+        df["similarity"] = similarity
+
+        # Drop rows where we had no overlapping metrics
+        df = df[~df["similarity"].isna()].copy()
+
+        # Sort and remove the selected player
+        df_sorted = df.sort_values("similarity", ascending=False)
+        df_comps = df_sorted[df_sorted.index != player_index].head(10)
+
+        # --------------------------------------------
+        # 8. Format output table
+        # --------------------------------------------
+        df_display = df_comps.copy()
+
+        df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
+
+        df_display = df_display.rename(columns={
+            "player_name": "Player",
+            "team_name": "Team",
+            "minutes_played": "Minutes",
+            "similarity": "Similarity Score"
+        })
+
+        final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
+
+        st.subheader(f"Top 10 Most Similar Players to {playername} ({position})")
+
+        st.dataframe(
+            df_display[final_cols].style.format({
+                "Similarity Score": "{:.1f}"
+            }),
+            use_container_width=True
+        )
+
+        st.info(
+            "Similarity computed as 0–100 based on root-mean-square difference in "
+            "percentile/percentage metrics (0 = no similarity, 100 = identical profile)."
+        )
+
 
 if __name__ == "__main__":
     main()
