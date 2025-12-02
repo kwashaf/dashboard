@@ -3009,20 +3009,36 @@ def main():
         arr = X01.to_numpy()
 
         # diff[i, j] = feature_j difference between player i and selected player
+        # --------------------------------------------
+        # WEIGHTED RMS DIFFERENCE
+        # --------------------------------------------
+        
+        # Build weights: 1.0 for percentile cols, lower for touch-distribution cols
+        weights = np.ones(len(feature_cols), dtype=float)
+        
+        for i, col in enumerate(feature_cols):
+            if col in ["%_touches_in_own_third", "%_touches_in_middle_third", "%_touches_in_final_third"]:
+                weights[i] = 0.3    # reduce influence of touch-location metrics
+        
+        # Expand weights to match df rows
+        W = np.tile(weights, (len(df), 1))
+        
+        # Differences
         diff = arr - player_vec
-
-        # Handle missing values feature-wise:
-        # we only use metrics that exist for BOTH players.
+        
+        # Mask missing values
         valid = ~np.isnan(arr)
         diff[~valid] = np.nan
-
-        # Number of metrics actually used per comparison
-        n_used = np.sum(~np.isnan(diff), axis=1)
-
-        # Root-mean-square difference across available metrics
+        W[~valid] = np.nan  # ignore weights where data missing
+        
+        # Weighted mean square
+        weighted_sq = W * (diff ** 2)
+        
+        n_used = np.sum(~np.isnan(weighted_sq), axis=1)
+        
         with np.errstate(invalid="ignore"):
-            mean_sq = np.nansum(diff ** 2, axis=1) / np.where(n_used == 0, np.nan, n_used)
-            distance = np.sqrt(mean_sq)  # in [0, ~1+] before clipping
+            mean_sq = np.nansum(weighted_sq, axis=1) / np.where(n_used == 0, np.nan, n_used)
+            distance = np.sqrt(mean_sq)
 
         # Convert distance → similarity on 0–100 scale
         similarity = (1.0 - distance) * 100.0
