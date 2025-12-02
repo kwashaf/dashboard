@@ -2821,18 +2821,90 @@ def main():
 
         st.image(fig_to_png_bytes(fig), width=1100)
 
-    # ================================================================
+
     # TAB 10 — PLAYER SIMILARITY ENGINE (EUCLIDEAN DISTANCE VERSION)
+    # + MULTI-LEAGUE SUPPORT
     # ================================================================
     with tab10:
         st.header("Closest Player Comparables")
     
-        if not playername or not position:
-            st.warning("Please select a player and position.")
-            st.stop()
+        # --------------------------------------------
+        # 0. League selector for additional datasets
+        # --------------------------------------------
+        st.subheader("Add Additional Leagues for Comparison")
     
-        # Filter stats to the chosen position + minute threshold
-        df = player_stats.copy()
+        available_leagues = [
+            lg for lg in COMPARISON_MAP.keys()
+            if lg != competition  # exclude currently selected league
+        ]
+    
+        selected_extra_leagues = st.multiselect(
+            "Select up to 4 additional leagues:",
+            options=available_leagues,
+            max_selections=4
+        )
+    
+        # --------------------------------------------
+        # 1. Load current league data
+        # --------------------------------------------
+        df_main = player_stats.copy()
+    
+        # --------------------------------------------
+        # 2. Load extra league data files
+        # --------------------------------------------
+        @st.cache_data
+        def load_league_file(mapped_name):
+            files = list_excel_files()
+            for f in files:
+                if mapped_name.lower() in f.lower():
+                    return pd.read_excel(f)
+            return None
+    
+        extra_frames = []
+        for lg in selected_extra_leagues:
+            mapped = COMPARISON_MAP[lg]
+            df_extra = load_league_file(mapped)
+            if df_extra is not None:
+                extra_frames.append(df_extra)
+    
+        # Combine all datasets
+        if extra_frames:
+            combined_df = pd.concat([df_main] + extra_frames, ignore_index=True)
+        else:
+            combined_df = df_main.copy()
+    
+        # --------------------------------------------
+        # 3. Apply consistent percentile transformations
+        # --------------------------------------------
+        def pct_0_to_100(s: pd.Series) -> pd.Series:
+            n = s.count()
+            if n <= 1:
+                return pd.Series([0] * len(s), index=s.index, dtype=float)
+            return (s.rank(method="min") - 1) / (n - 1) * 100
+    
+        # Percentile-eligible columns
+        pct_cols_raw = [
+            c for c in combined_df.columns
+            if c not in [
+                "player_name", "team_name", "position_group",
+                "%_touches_in_own_third", "%_touches_in_middle_third",
+                "%_touches_in_final_third", "minutes_played"
+            ]
+            and combined_df[c].dtype in ["float64", "int64"]
+        ]
+    
+        # Apply percentiles by position_group
+        for col in pct_cols_raw:
+            combined_df[col + "__pct"] = (
+                combined_df.groupby("position_group")[col]
+                [col]
+                .transform(lambda s: pct_0_to_100(s))
+            )
+    
+        # --------------------------------------------
+        # 4. Now proceed as before but use combined_df
+        # --------------------------------------------
+        df = combined_df.copy()
         df["minutes_played"] = pd.to_numeric(df["minutes_played"], errors="coerce")
         df = df[
             (df["position_group"] == position) &
@@ -2843,16 +2915,13 @@ def main():
             st.warning("No players available for similarity comparison.")
             st.stop()
     
-        # -----------------------------
-        # 1. Identify usable columns
-        # -----------------------------
-        # All percentile columns:
+        # Identify percentile columns
         pct_cols = [c for c in df.columns if c.endswith("__pct")]
     
-        # Remove threat_value_per_90 percentile if present
+        # Remove threat_value if present
         pct_cols = [c for c in pct_cols if "threat_value_per_90" not in c.lower()]
     
-        # Add required RAW touch-distribution columns
+        # Add raw touch metrics
         touch_cols = [
             "%_touches_in_own_third",
             "%_touches_in_middle_third",
@@ -2862,20 +2931,12 @@ def main():
     
         feature_cols = pct_cols + touch_cols
     
-        if len(feature_cols) == 0:
-            st.error("No valid features found for similarity modelling.")
-            st.stop()
-    
-        # Ensure numeric only
+        # Ensure numeric
         for c in feature_cols:
             df[c] = pd.to_numeric(df[c], errors="coerce")
     
-        # Drop rows missing all metrics
         df = df.dropna(subset=feature_cols, how="all")
     
-        # -----------------------------
-        # 2. Build feature matrix
-        # -----------------------------
         from sklearn.preprocessing import StandardScaler
         from sklearn.metrics import pairwise_distances
     
@@ -2884,11 +2945,8 @@ def main():
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
     
-        # -----------------------------
-        # 3. Identify selected player row
-        # -----------------------------
+        # Find selected player row
         mask = (df["player_name"] == playername) & (df["team_name"] == team_choice)
-    
         if mask.sum() == 0:
             st.warning("Could not find matching player row in stats table.")
             st.stop()
@@ -2896,35 +2954,24 @@ def main():
         player_index = df.index[mask][0]
         player_vec = X_scaled[df.index.get_loc(player_index)]
     
-        # -----------------------------
-        # 4. Compute Euclidean distance + convert to similarity
-        # -----------------------------
+        # Euclidean distance → similarity
         distances = pairwise_distances([player_vec], X_scaled, metric="euclidean")[0]
-    
-        # Convert distance → similarity
-        # higher score = more similar (0–1 range)
         sims = 1 / (1 + distances)
     
         df["similarity"] = sims
     
-        # Sort descending, best matches first
+        # Sort and remove the player
         df_sorted = df.sort_values("similarity", ascending=False)
-    
-        # Exclude the player themselves
         df_comps = df_sorted[df_sorted.index != player_index].head(10)
     
-        # -----------------------------
-        # 5. Format + Display Results
-        # -----------------------------
+        # --------------------------------------------
+        # 5. Format output table
+        # --------------------------------------------
         df_display = df_comps.copy()
     
-        # Round minutes
         df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
-    
-        # Convert similarity to 0–100 score, 2 decimals
         df_display["similarity"] = (df_display["similarity"] * 100).round(2)
     
-        # Rename columns
         df_display = df_display.rename(columns={
             "player_name": "Player",
             "team_name": "Team",
@@ -2932,7 +2979,6 @@ def main():
             "similarity": "Similarity Score"
         })
     
-        # Only show these columns
         final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
     
         st.subheader(f"Top 10 Most Similar Players to {playername} ({position})")
@@ -2944,6 +2990,6 @@ def main():
             use_container_width=True
         )
     
-        st.info("Similarity is based on percentile performance metrics + touch distribution profile (Euclidean distance method).")
+        st.info("Similarity computed using Euclidean distance on standardized percentile metrics + raw touch distribution.")
 if __name__ == "__main__":
     main()
