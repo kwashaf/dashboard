@@ -197,7 +197,113 @@ def metric_is_percent(display_name: str) -> bool:
     Any metric whose display name includes '%' is considered a percent metric.
     """
     return "%" in display_name
+def create_pass_and_carry_sonar(
+    matchdata,
+    playername,
+    team_choice,
+    position,
+    BackgroundColor,
+    PitchColor,
+    PitchLineColor,
+    TextColor
+):
+    from mplsoccer import VerticalPitch
+    from matplotlib.patches import Wedge
+    from matplotlib.lines import Line2D
+    import matplotlib.pyplot as plt
 
+    # ---------------------------
+    # 0. FILTER BASE DATA
+    # ---------------------------
+    base = matchdata.loc[
+        (matchdata['playerName'] == playername) &
+        (matchdata['playing_position'] == position) &
+        (matchdata['team_name'] == team_choice) &
+        (matchdata['throwin'] != 1) &
+        (matchdata['corner'] != 1) &
+        (matchdata['freekick'] != 1) &
+        (matchdata['goalkick'] != 1)
+    ].copy()
+
+    # Remove kick-off ghosts
+    mask1 = ~((base['periodId'] == 1) & (base['timeMin'] == 0) & (base['timeSec'] == 0))
+    mask2 = ~((base['periodId'] == 2) & (base['timeMin'] == 45) & (base['timeSec'] == 0))
+    base = base[mask1 & mask2]
+
+    passingdata = base.loc[base['typeId'] == 'Pass'].copy()
+    carryingdata = base.loc[base['typeId'] == 'Carry'].copy()
+
+    # ---------------------------
+    # 1. SETTINGS
+    # ---------------------------
+    x_bins = np.linspace(0, 100, 6)
+    y_bins = np.linspace(0, 100, 6)
+
+    def plot_sonar(ax, cx, cy, angles, bins=12, max_radius=8, color='#381d54'):
+        edges = np.linspace(0, 360, bins + 1)
+        counts, _ = np.histogram(angles, bins=edges)
+        radii = (counts / counts.max() * max_radius) if counts.max() else np.zeros_like(counts)
+        for i in range(bins):
+            if radii[i] > 0:
+                wedge = Wedge(
+                    center=(cy, cx),
+                    r=radii[i],
+                    theta1=edges[i],
+                    theta2=edges[i + 1],
+                    facecolor=color,
+                    edgecolor=color,
+                    alpha=0.85
+                )
+                ax.add_patch(wedge)
+
+    def add_grid(ax):
+        for xb in x_bins:
+            ax.add_line(Line2D([0, 100], [xb, xb], color='white', ls='--', lw=.7, alpha=.25))
+        for yb in y_bins:
+            ax.add_line(Line2D([yb, yb], [0, 100], color='white', ls='--', lw=.7, alpha=.25))
+
+    def sonar(ax, data, title):
+        if data.empty:
+            ax.set_title(f"{title} (No data)", color=TextColor)
+            return
+
+        df = data.copy()
+        df['y_s'] = df['y'] * 0.65
+        df['end_y_s'] = df['end_y'] * 0.65
+
+        df['hx'] = df['end_y_s'] - df['y_s']
+        df['vy'] = df['end_x'] - df['x']
+        df['angle'] = (np.degrees(np.arctan2(df['vy'], df['hx'])) + 360) % 360
+
+        df['row'] = pd.cut(df['x'], bins=x_bins, labels=False)
+        df['col'] = pd.cut(df['y'], bins=y_bins, labels=False)
+
+        add_grid(ax)
+
+        for r in range(5):
+            for c in range(5):
+                cell = df[(df['row'] == r) & (df['col'] == c)]
+                if not len(cell):
+                    continue
+                cx = (x_bins[r] + x_bins[r+1]) / 2
+                cy = (y_bins[c] + y_bins[c+1]) / 2
+                plot_sonar(ax, cx, cy, cell['angle'], max_radius=7)
+
+        ax.set_title(title, color=TextColor)
+
+    # ---------------------------
+    # 2. BUILD FIGURE
+    # ---------------------------
+    pitch = VerticalPitch(pitch_type='opta', goal_type='box',
+                          pitch_color=PitchColor, line_color=PitchLineColor)
+
+    fig, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
+    fig.set_facecolor(BackgroundColor)
+
+    sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
+    sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
+
+    return fig
 def determine_def_zone(row):
     """
     Zones for defensive half only (x <= 50).
@@ -1963,8 +2069,8 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
-        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions", "Metric Comparisons", "Defensive Actions"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
+        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling", "Shot Maps", "Creative Actions", "Metric Comparisons", "Defensive Actions", "Passes & Carries"]
     )
     # Init session state
     if "active_tab" not in st.session_state:
@@ -2693,5 +2799,21 @@ def main():
         )
     
         st.image(fig_to_png_bytes(fig), width=600)
+
+    with tab9:
+        st.subheader("Passing & Carrying Sonars")
+    
+        fig = create_pass_and_carry_sonar(
+            matchdata=matchdata,
+            playername=playername,
+            team_choice=team_choice,
+            position=position,
+            BackgroundColor=BackgroundColor,
+            PitchColor=PitchColor,
+            PitchLineColor=PitchLineColor,
+            TextColor=TextColor,
+        )
+
+    st.pyplot(fig)
 if __name__ == "__main__":
     main()
