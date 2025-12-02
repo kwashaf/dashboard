@@ -226,8 +226,8 @@ def create_pass_and_carry_sonar(
     ].copy()
 
     # Remove kick-off ghosts
-    mask1 = ~((base['periodId'] == 1) & (base['timeMin'] == 0) & (base['timeSec'] == 0))
-    mask2 = ~((base['periodId'] == 2) & (base['timeMin'] == 45) & (base['timeSec'] == 0))
+    mask1 = ~((base['timeMin'] == 0) & (base['timeSec'] == 0))
+    mask2 = ~((base['timeMin'] == 45) & (base['timeSec'] == 0))
     base = base[mask1 & mask2]
 
     passingdata = base.loc[base['typeId'] == 'Pass'].copy()
