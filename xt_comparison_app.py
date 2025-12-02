@@ -2921,6 +2921,20 @@ def main():
         # 4. Now proceed as before but use combined_df
         # --------------------------------------------
         df = combined_df.copy()
+        position_replacements = {
+            "LMW": "LW",
+            "RMW": "RW",
+        }
+    
+        # Safely detect the position column
+        pos_col = None
+        for c in df.columns:
+            if c.lower() in ["position", "pos"]:
+                pos_col = c
+                break
+    
+        if pos_col is not None:
+            df[pos_col] = df[pos_col].replace(position_replacements)
         df["minutes_played"] = pd.to_numeric(df["minutes_played"], errors="coerce")
         df = df[
             (df["position_group"] == position) &
