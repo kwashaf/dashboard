@@ -2912,11 +2912,29 @@ def main():
         # -----------------------------
         st.subheader(f"Top 10 Most Similar Players to **{playername}** ({position})")
     
-        show_cols = [
-            "player_name", "team_name", "minutes_played", "similarity"
-        ]
+        df_display = df_comps.copy()
+        
+        # Round minutes
+        df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
+        
+        # Convert similarity to percentage (0–100), keep 2 decimals
+        df_display["similarity"] = (df_display["similarity"] * 100).round(2)
+        
+        # Rename columns
+        df_display = df_display.rename(columns={
+            "player_name": "Player",
+            "team_name": "Team",
+            "minutes_played": "Minutes",
+            "similarity": "Similarity Score"
+        })
+        
+        # Only show these columns
+        final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
+        
         st.dataframe(
-            df_comps[show_cols].style.format({"similarity": "{:.3f}"}),
+            df_display[final_cols].style.format({
+                "Similarity Score": "{:.2f}"
+            }),
             use_container_width=True
         )
     
