@@ -2945,6 +2945,5 @@ def main():
         )
     
         st.info("Similarity is based on percentile performance metrics + touch distribution profile (Euclidean distance method).")
-🎯 WHAT THIS FIXES
 if __name__ == "__main__":
     main()
