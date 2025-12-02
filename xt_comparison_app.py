@@ -268,11 +268,9 @@ def create_pass_and_carry_sonar(
             return
 
         df = data.copy()
-        df['y_s'] = df['y'] * 0.65
-        df['end_y_s'] = df['end_y'] * 0.65
-
-        df['hx'] = df['end_y_s'] - df['y_s']
-        df['vy'] = df['end_x'] - df['x']
+        df['hx'] = df['end_y'] - df['y']      # horizontal component
+        df['vy'] = df['end_x'] - df['x']      # vertical component
+        
         df['angle'] = (np.degrees(np.arctan2(df['vy'], df['hx'])) + 360) % 360
 
         df['row'] = pd.cut(df['x'], bins=x_bins, labels=False)
@@ -300,9 +298,7 @@ def create_pass_and_carry_sonar(
     fig, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
     fig.set_facecolor(BackgroundColor)
     
-    # 🔥 Fix sonar distortion
-    for ax in axes:
-        ax.set_aspect('equal', adjustable='box')
+
     sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
     sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
 
