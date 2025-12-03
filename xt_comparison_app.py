@@ -3207,7 +3207,8 @@ def main():
             range=[0, 100],
             tickmode="linear",
             dtick=20,
-            ticks="outside"
+            ticks="outside",
+            fixedrange=True 
             ),
         )
         
