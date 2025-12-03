@@ -182,6 +182,84 @@ SCATTER_METRIC_MAP = {
     "box_touches_per_shot": "Touches in Box per Shot",
 }
 
+# ---------------------------------------------------------
+# METRICS USED FOR PLAYER SIMILARITY (RAW → PERCENTILES)
+# ---------------------------------------------------------
+SIMILARITY_METRICS = [
+    "pass_completion",
+    "pass_completion_final_third",
+    "%_passes_are_progressive",
+    "attempted_passes_per_90",
+    "prog_passes_per_90",
+    "keyPasses_per_90",
+    "assists_per_90",
+    "xA_per_90",
+    "switches_per_90",
+    "passing_yards_per_90",
+    "passing_threat_per_90",
+    "dribbles_per_90",
+    "prog_carries_per_90",
+    "carries_to_final_third_per_90",
+    "carrying_yards_per_90",
+    "ten_yard_carries_per_90",
+    "carry_threat_per_90",
+    "fouled_per_90",
+    "total_threat_created_per_90",
+    "touches_per_90",
+    "touches_in_final_third_per_90",
+    "touches_in_own_third_per_90",
+    "touches_in_middle_third_per_90",
+    "touches_in_box_per_90",
+    "received_passes_per_90",
+    "received_passes_final_third_per_90",
+    "aerials_per_90",
+    "def_aerials_per_90",
+    "off_aerials_per_90",
+    "tackles_per_90",
+    "challenges_per_90",
+    "interceptions_per_90",
+    "opp_half_interceptions_per_90",
+    "ball_recoveries_per_90",
+    "opp_half_ball_recoveries_per_90",
+    "clearances_per_90",
+    "box_def_actions_per_90",
+    "sixbox_def_actions_per_90",
+    "blocked_shots_per_90",
+    "last_man_per_90",
+    "errors_per_90",
+    "errors_leading_to_goal_per_90",
+    "own_goals_per_90",
+    "fouls_per_90",
+    "yellow_cards_per_90",
+    "red_cards_per_90",
+    "ground_threat_prevented_per_90",
+    "aerial_threat_prevented_per_90",
+    "total_threat_prevented_per_90",
+    "shots_per_90",
+    "shots_on_target_per_90",
+    "xG_per_90",
+    "xGOT_per_90",
+    "goals_per_90",
+    "threat_value_per_90",
+    "attacking_actions_per_90",
+    "successful_attacking_actions_per_90",
+    "defensive_actions_per_90",
+    "successful_defensive_actions_per_90",
+    "%_def_actions_in_box",
+    "%_def_actions_in_6box",
+    "aerial_win_rate",
+    "def_aerial_win_rate",
+    "off_aerial_win_rate",
+    "tackle_win_rate",
+    "challenge_win_rate",
+    "dribble_win_rate",
+    "shot_accuracy",
+    "shot_conversion",
+    "shot_quality",
+    "box_touches_per_shot",
+  #  "xG_per_shot",
+]
+
 def resolve_metric(display_label: str) -> str:
     """
     Converts a display label like 'Pass Completion %'
@@ -2839,7 +2917,7 @@ def main():
         st.image(fig_to_png_bytes(fig), width=1100)
 
 
-    # TAB 10 — PLAYER SIMILARITY ENGINE (RMS DISTANCE VERSION)
+    # TAB 10 — PLAYER SIMILARITY ENGINE (TOP/BOTTOM METRICS VERSION)
     # + MULTI-LEAGUE SUPPORT
     # ================================================================
     with tab10:
@@ -2882,15 +2960,14 @@ def main():
             files = list_excel_files()
             for f in files:
                 if mapped_name.lower() in f.lower():
+                    # NOTE: these files are already local / accessible in your setup
                     df = pd.read_excel(f)
 
-                    # Normalise positions AS SOON AS WE LOAD
                     position_replacements = {
                         "LMW": "LW",
                         "RMW": "RW",
                     }
 
-                    # Try to find a position / position_group column in this file
                     pos_col = None
                     for c in df.columns:
                         if c.lower() in ["position_group", "position", "pos"]:
@@ -2904,7 +2981,6 @@ def main():
 
             return None
 
-        # Collect any extra league frames (already normalised)
         extra_frames = []
         for lg in selected_extra_leagues:
             mapped = COMPARISON_MAP[lg]
@@ -2921,57 +2997,107 @@ def main():
             combined_df = df_main.copy()
 
         # --------------------------------------------
-        # 4. Apply consistent percentile transformations
+        # 4. Percentiles for the requested similarity metrics
         # --------------------------------------------
         def pct_0_to_100(s: pd.Series) -> pd.Series:
-            n = s.count()
+            s_num = pd.to_numeric(s, errors="coerce")
+            n = s_num.count()
             if n <= 1:
-                return pd.Series([0] * len(s), index=s.index, dtype=float)
-            return (s.rank(method="min") - 1) / (n - 1) * 100
+                return pd.Series([np.nan] * len(s_num), index=s_num.index, dtype=float)
+            return (s_num.rank(method="min") - 1) / (n - 1) * 100
 
-        # Percentile-eligible columns
-        pct_cols_raw = [
-            c for c in combined_df.columns
-            if c not in [
-                "player_name", "team_name", "position_group",
-                "%_touches_in_own_third", "%_touches_in_middle_third",
-                "%_touches_in_final_third", "minutes_played"
-            ]
-            and combined_df[c].dtype in ["float64", "int64"]
-        ]
+        # Keep only metrics that actually exist in this combined dataset
+        metric_cols_available = [c for c in SIMILARITY_METRICS if c in combined_df.columns]
 
-        # Apply percentiles by position_group
-        for col in pct_cols_raw:
+        if not metric_cols_available:
+            st.warning("None of the configured similarity metrics are present in the stats data.")
+            st.stop()
+
+        if "position_group" not in combined_df.columns:
+            st.error("Column 'position_group' is required for similarity comparison.")
+            st.stop()
+
+        # Apply percentiles within position_group for each metric
+        for col in metric_cols_available:
             combined_df[col + "__pct"] = (
-                combined_df.groupby("position_group")[col]
-                .transform(lambda s: pct_0_to_100(s))
+                combined_df
+                .groupby("position_group")[col]
+                .transform(pct_0_to_100)
             )
 
         # --------------------------------------------
         # 5. Filter for selected position + minutes
         # --------------------------------------------
         df = combined_df.copy()
-
-        # Make sure minutes are numeric
         df["minutes_played"] = pd.to_numeric(df["minutes_played"], errors="coerce")
+
         df = df[
             (df["position_group"] == position) &
             (df["minutes_played"] >= minuteinput)
         ].copy()
 
         if df.empty:
-            st.warning("No players available for similarity comparison.")
+            st.warning("No players available for similarity comparison for this position and minute threshold.")
             st.stop()
 
         # --------------------------------------------
-        # 6. Build feature set (percentiles + raw touch %)
+        # 6. Work out THIS player's top 15 & bottom 10 percentile metrics
         # --------------------------------------------
-        pct_cols = [c for c in df.columns if c.endswith("__pct")]
+        # Percentile columns corresponding to the metric list
+        pct_cols = [c + "__pct" for c in metric_cols_available]
 
-        # Remove threat_value if present
-        pct_cols = [c for c in pct_cols if "threat_value_per_90" not in c.lower()]
+        # Find selected player row
+        mask_player = (df["player_name"] == playername) & (df["team_name"] == team_choice)
+        if mask_player.sum() == 0:
+            st.warning("Could not find a matching row for the selected player in the stats table.")
+            st.stop()
 
-        # Add raw touch metrics
+        player_index = df.index[mask_player][0]
+        player_pcts = df.loc[player_index, pct_cols].dropna()
+
+        if player_pcts.empty:
+            st.warning("Selected player has no percentile data for the configured metrics.")
+            st.stop()
+
+        # Strongest 15 metrics (highest percentiles)
+        top_15 = player_pcts.sort_values(ascending=False).head(15)
+
+        # Weakest 10 metrics (lowest percentiles)
+        bottom_10 = player_pcts.sort_values(ascending=True).head(10)
+
+        # Final set of percentile features driving similarity
+        selected_pct_cols = pd.Index(top_15.index).union(bottom_10.index).tolist()
+
+        # --------------------------------------------
+        # 6a. Show which metrics are being used
+        # --------------------------------------------
+        def nice_metric_name(pct_col: str) -> str:
+            base = pct_col.replace("__pct", "")
+            # Try to use the scatter map labels if available, else raw name
+            return SCATTER_METRIC_MAP.get(base, base)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Selected player's strongest metrics (top 15 percentiles)**")
+            top_display = top_15.reset_index()
+            top_display.columns = ["Metric (raw column)", "Percentile"]
+            top_display["Metric"] = top_display["Metric"].apply(nice_metric_name)
+            top_display["Percentile"] = top_display["Percentile"].round(1)
+            st.dataframe(top_display[["Metric", "Percentile"]], use_container_width=True)
+
+        with col2:
+            st.markdown("**Selected player's weakest metrics (bottom 10 percentiles)**")
+            bottom_display = bottom_10.reset_index()
+            bottom_display.columns = ["Metric (raw column)", "Percentile"]
+            bottom_display["Metric"] = bottom_display["Metric"].apply(nice_metric_name)
+            bottom_display["Percentile"] = bottom_display["Percentile"].round(1)
+            st.dataframe(bottom_display[["Metric", "Percentile"]], use_container_width=True)
+
+        # --------------------------------------------
+        # 7. Build feature set:
+        #    - the 25 (max) selected percentile metrics
+        #    - plus % of touches in each third with reduced weight
+        # --------------------------------------------
         touch_cols = [
             "%_touches_in_own_third",
             "%_touches_in_middle_third",
@@ -2979,110 +3105,95 @@ def main():
         ]
         touch_cols = [c for c in touch_cols if c in df.columns]
 
-        feature_cols = pct_cols + touch_cols
+        feature_cols = selected_pct_cols + touch_cols
 
         # Ensure numeric
         for c in feature_cols:
             df[c] = pd.to_numeric(df[c], errors="coerce")
 
-        # Drop players with no usable metrics at all
+        # Drop players with absolutely no usable metrics
         df = df.dropna(subset=feature_cols, how="all")
 
-        # --------------------------------------------
-        # 7. Player-centric similarity in percentile space
-        # --------------------------------------------
-        # All feature columns are percentiles (0–100) or % values,
-        # so we normalise to 0–1 and measure RMS difference.
-        X = df[feature_cols].astype(float).clip(lower=0, upper=100)
-        X01 = X / 100.0  # 0–1 scale
-
-        # Find selected player row
-        mask = (df["player_name"] == playername) & (df["team_name"] == team_choice)
-        if mask.sum() == 0:
-            st.warning("Could not find matching player row in stats table.")
+        if df.empty:
+            st.warning("After filtering for usable metrics, no players remain for comparison.")
             st.stop()
 
-        player_index = df.index[mask][0]
-        player_vec = X01.loc[player_index].to_numpy()
+        # All percentile / percentage metrics → 0–1
+        X = df[feature_cols].astype(float)
+        X01 = X / 100.0
 
-        # Convert to numpy for vectorised distance calc
+        # Re-compute player index after any row drops
+        mask_player = (df["player_name"] == playername) & (df["team_name"] == team_choice)
+        if mask_player.sum() == 0:
+            st.warning("Selected player was filtered out due to missing data.")
+            st.stop()
+
+        player_index = df.index[mask_player][0]
+        player_vec = X01.loc[player_index].to_numpy()
         arr = X01.to_numpy()
 
-        # diff[i, j] = feature_j difference between player i and selected player
         # --------------------------------------------
         # WEIGHTED RMS DIFFERENCE
+        #  - 1.0 for top/bottom percentile metrics
+        #  - 0.3 for touch-distribution metrics
         # --------------------------------------------
-        
-        # Build weights: 1.0 for percentile cols, lower for touch-distribution cols
         weights = np.ones(len(feature_cols), dtype=float)
-        
         for i, col in enumerate(feature_cols):
-            if col in ["%_touches_in_own_third", "%_touches_in_middle_third", "%_touches_in_final_third"]:
-                weights[i] = 0.3    # reduce influence of touch-location metrics
-        
-        # Expand weights to match df rows
+            if col in touch_cols:
+                weights[i] = 0.3
+
         W = np.tile(weights, (len(df), 1))
-        
-        # Differences
+
         diff = arr - player_vec
-        
-        # Mask missing values
         valid = ~np.isnan(arr)
+
         diff[~valid] = np.nan
-        W[~valid] = np.nan  # ignore weights where data missing
-        
-        # Weighted mean square
+        W[~valid] = np.nan
+
         weighted_sq = W * (diff ** 2)
-        
         n_used = np.sum(~np.isnan(weighted_sq), axis=1)
-        
+
         with np.errstate(invalid="ignore"):
             mean_sq = np.nansum(weighted_sq, axis=1) / np.where(n_used == 0, np.nan, n_used)
             distance = np.sqrt(mean_sq)
 
-        # Convert distance → similarity on 0–100 scale
         similarity = (1.0 - distance) * 100.0
         similarity = np.clip(similarity, 0.0, 100.0)
 
         df["similarity"] = similarity
-
-        # Drop rows where we had no overlapping metrics
         df = df[~df["similarity"].isna()].copy()
 
-        # Sort and remove the selected player
+        # --------------------------------------------
+        # 8. Sort & present closest comparables
+        # --------------------------------------------
         df_sorted = df.sort_values("similarity", ascending=False)
         df_comps = df_sorted[df_sorted.index != player_index].head(10)
 
-        # --------------------------------------------
-        # 8. Format output table
-        # --------------------------------------------
         df_display = df_comps.copy()
-
         df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
 
         df_display = df_display.rename(columns={
             "player_name": "Player",
             "team_name": "Team",
             "minutes_played": "Minutes",
-            "similarity": "Similarity Score"
+            "similarity": "Similarity Score",
         })
 
         final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
 
         st.subheader(f"Top 10 Most Similar Playing Style to {playername} as ({position})")
-
         st.dataframe(
             df_display[final_cols].style.format({
                 "Similarity Score": "{:.1f}"
             }),
-            use_container_width=True
+            use_container_width=True,
         )
 
         st.info(
-            "Similarity computed as 0–100 based on root-mean-square difference in "
-            "percentile/percentage metrics (0 = no similarity, 100 = identical profile)."
+            "Similarity is based only on this player's 15 strongest and 10 weakest "
+            "percentile metrics (per 90 / %), plus a reduced-weight penalty on "
+            "% of touches in each third so that players are compared within similar zones."
         )
-
 
 if __name__ == "__main__":
     main()
