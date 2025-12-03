@@ -3156,7 +3156,6 @@ def main():
         # HORIZONTAL BAR CHART OF THE TOP 10 SIMILAR PLAYERS
         # ------------------------------------------------------
         import plotly.express as px
-        import numpy as np
         
         # Start from your top 10 comparisons
         df_plot = df_comps.copy()
