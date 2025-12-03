@@ -395,17 +395,21 @@ def create_pass_and_carry_sonar(
     # 3. ADD CENTERED IMAGE TO BOTH PITCHES
     # =====================================================
     def add_center_logo(ax, img, alpha=0.25, size=0.55):
-        arr = img.copy()
+        # Convert PIL image → numpy array
+        arr = np.array(img).copy()
+    
+        # Apply transparency
         if alpha < 1:
             arr = arr.astype(float) / 255.0
             arr[..., :3] *= alpha
             arr = (arr * 255).astype("uint8")
-
+    
+        # Center the logo inside the axes
         left   = 0.5 - size/2
         right  = 0.5 + size/2
         bottom = 0.5 - size/2
         top    = 0.5 + size/2
-
+    
         ax.imshow(
             arr,
             extent=[left, right, bottom, top],
