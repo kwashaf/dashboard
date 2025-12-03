@@ -391,30 +391,7 @@ def create_pass_and_carry_sonar(
 
     sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
     sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
-    def add_center_overlay(ax, img, alpha=0.25, size=0.5):
-        arr = img.copy()
-    
-        # Apply transparency
-        if alpha < 1:
-            arr = arr.astype(float) / 255.0
-            arr[..., :3] *= alpha
-            arr = (arr * 255).astype("uint8")
-    
-        # Size is in axis coords (0–1)
-        left   = 0.5 - size/2
-        right  = 0.5 + size/2
-        bottom = 0.5 - size/2
-        top    = 0.5 + size/2
-    
-        ax.imshow(
-            arr,
-            extent=[left, right, bottom, top],
-            transform=ax.transAxes,
-            zorder=0.5,     # beneath sonar wedges (z≈1)
-            aspect="equal"
-        )
-    add_center_overlay(axes[0], wtaimaged, alpha=0.25, size=0.55)
-    add_center_overlay(axes[1], wtaimaged, alpha=0.25, size=0.55)
+
     return fig
 def determine_def_zone(row):
     """
