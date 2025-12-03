@@ -392,7 +392,8 @@ def create_pass_and_carry_sonar(
 
     sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
     sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
-    add_image(wtaimaged, fig, left=0.205, bottom=0.4535, width=0.1, alpha=0.25)
+    add_image(wtaimaged, fig, left=0.203, bottom=0.4535, width=0.1, alpha=0.25)
+    add_image(wtaimaged, fig, left=0.505, bottom=0.4535, width=0.1, alpha=0.25)
 
     return fig
 
