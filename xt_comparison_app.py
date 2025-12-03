@@ -2843,12 +2843,12 @@ def main():
     # + MULTI-LEAGUE SUPPORT
     # ================================================================
     with tab10:
-        st.header("Closest Player Comparables")
+        st.header("Closest Playing Style Comparables")
 
         # --------------------------------------------
         # 0. League selector for additional datasets
         # --------------------------------------------
-        st.subheader("Add Additional Leagues for Comparison")
+        st.subheader("Add Additional Leagues for Further Comparison")
 
         available_leagues = [
             lg for lg in COMPARISON_MAP.keys()
