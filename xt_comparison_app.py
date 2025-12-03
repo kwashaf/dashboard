@@ -3204,7 +3204,7 @@ def main():
             plot_bgcolor="rgba(0,0,0,0)",
             width=1000,
             xaxis=dict(
-            range=[0, 100],
+            range=[0, 105],
             tickmode="linear",
             dtick=20,
             ticks="outside",
