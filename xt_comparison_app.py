@@ -3075,39 +3075,7 @@ def main():
             base = pct_col.replace("__pct", "")
             # Try to use the scatter map labels if available, else raw name
             return SCATTER_METRIC_MAP.get(base, base)
-        """
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**Selected player's strongest metrics (top 15 percentiles)**")
-        
-            top_display = top_15.reset_index()
-            top_display.columns = ["Metric (raw column)", "Percentile"]
-        
-            # convert readable name
-            top_display["Metric (raw column)"] = top_display["Metric (raw column)"].apply(nice_metric_name)
-            top_display = top_display.rename(columns={"Metric (raw column)": "Metric"})
-        
-            # ensure numeric then round
-            top_display["Percentile"] = pd.to_numeric(top_display["Percentile"], errors="coerce").round(1)
-        
-            st.dataframe(top_display[["Metric", "Percentile"]], use_container_width=True)
-        
-        with col2:
-            st.markdown("**Selected player's weakest metrics (bottom 10 percentiles)**")
-        
-            bottom_display = bottom_10.reset_index()
-            bottom_display.columns = ["Metric (raw column)", "Percentile"]
-        
-            # convert readable name
-            bottom_display["Metric (raw column)"] = bottom_display["Metric (raw column)"].apply(nice_metric_name)
-            bottom_display = bottom_display.rename(columns={"Metric (raw column)": "Metric"})
-        
-            # ensure numeric then round
-            bottom_display["Percentile"] = pd.to_numeric(bottom_display["Percentile"], errors="coerce").round(1)
-        
-            st.dataframe(bottom_display[["Metric", "Percentile"]], use_container_width=True)
-        """
+
         # --------------------------------------------
         # 7. Build feature set:
         #    - the 25 (max) selected percentile metrics
@@ -3188,11 +3156,13 @@ def main():
         # HORIZONTAL BAR CHART OF THE TOP 10 SIMILAR PLAYERS
         # ------------------------------------------------------
         import plotly.express as px
+        import numpy as np
         
+        # Start from your top 10 comparisons
         df_plot = df_comps.copy()
-        df_plot = df_plot.sort_values("similarity", ascending=True)  # so best is on top
+        df_plot = df_plot.sort_values("similarity", ascending=True)  # worst of the top 10 at the bottom
         
-        # player labels = Player (Team)
+        # Label used on the y-axis
         df_plot["label"] = df_plot["player_name"] + " (" + df_plot["team_name"] + ")"
         
         fig = px.bar(
@@ -3202,14 +3172,28 @@ def main():
             orientation="h",
             range_x=[0, 100],
             color="similarity",
+            # 👇 force colour range to be 0–100 so "red" only happens for truly low scores
+            range_color=[0, 100],
             color_continuous_scale=[
-                (0.00, "red"),
-                (0.45, "orange"),
-                (0.75, "yellowgreen"),
-                (1.00, "green"),
+                (0.00, "red"),         # 0
+                (0.40, "orange"),      # 40
+                (0.70, "yellowgreen"), # 70
+                (1.00, "green"),       # 100
             ],
             labels={"similarity": "Similarity Score", "label": ""},
             height=500,
+        )
+        
+        # 👇 Custom hover text:
+        # "playername - teamname\nminutes_played"
+        fig.update_traces(
+            customdata=df_plot[["player_name", "team_name", "minutes_played"]],
+            hovertemplate=(
+                "<b>%{customdata[0]} - %{customdata[1]}</b><br>"
+                "Minutes played: %{customdata[2]:.0f}"
+                "<extra></extra>"
+            ),
+            marker_line_width=0,
         )
         
         fig.update_layout(
@@ -3218,17 +3202,14 @@ def main():
             yaxis_title="",
             coloraxis_showscale=False,
             plot_bgcolor="rgba(0,0,0,0)",
+            width=1000, 
         )
         
-        # Clean bar appearance
-        fig.update_traces(marker_line_width=0)
-        
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=False)  
 
         st.info(
-            "Similarity is based only on this player's 15 strongest and 10 weakest "
-            "percentile metrics (per 90 / %), plus a reduced-weight penalty on "
-            "% of touches in each third so that players are compared within similar zones."
+            "Similarity is based only on this player's strongest & weakest metrics, coupled with "
+            "their most common pitch areas for touches. This does not compare ability, only styles."
         )
 
 if __name__ == "__main__":
