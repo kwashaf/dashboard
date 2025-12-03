@@ -2694,7 +2694,7 @@ def main():
                 fontsize=14, color=TextColor
             )
             add_image(teamimage, figGM, left=0.32, bottom=0.58, width=0.125, alpha=1)
-            add_image(wtaimaged, figGM, left=0.58, bottom=0.58, width=0.125, alpha=1)
+            add_image(wtaimaged, figGM, left=0.58, bottom=0.60, width=0.125, alpha=1)
             st.pyplot(figGM)
 
 # ================================================================
