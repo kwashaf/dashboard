@@ -903,28 +903,33 @@ def plot_profile_polygon_with_ball(
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # -------- NEW: CENTERED OVERLAY IMAGE --------
+    # -------- NEW: CENTERED OVERLAY IMAGE (WITH PROPER Z-ORDER) --------
     if overlay_img is not None:
         try:
             arr = overlay_img.copy()
-
+    
             # Apply transparency
             if overlay_alpha < 1:
                 arr = arr.astype(float) / 255.0
                 arr[..., :3] *= overlay_alpha
                 arr = (arr * 255).astype("uint8")
-
+    
             if overlay_center:
                 left = 0.5 - overlay_size / 2
                 bottom = 0.5 - overlay_size / 2
             else:
                 left = overlay_left or 0.4
                 bottom = overlay_bottom or 0.4
-
-            newax = fig.add_axes([left, bottom, overlay_size, overlay_size])
+    
+            # IMPORTANT: zorder must be > background (0) but < polygon (3)
+            newax = fig.add_axes(
+                [left, bottom, overlay_size, overlay_size], 
+                zorder=1  # 👈 THIS FIXES IT
+            )
+    
             newax.imshow(arr)
             newax.axis("off")
-
+    
         except Exception as e:
             print("Overlay image failed:", e)
 
