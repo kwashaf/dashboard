@@ -2690,7 +2690,7 @@ def main():
                 axGM.plot([0, 2], [y, y], color='grey', linewidth=0.5)
     
             axGM.set_title(
-                f"{playername} – Shot Placement as {Position}",
+                f"{playername} – Shot Placement as position}",
                 fontsize=14, color=TextColor
             )
             add_image(teamimage, figGM, left=0.32, bottom=0.78, width=0.10, alpha=1)
