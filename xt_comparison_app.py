@@ -1,7 +1,7 @@
 import io
 from io import BytesIO
 import requests
-
+import json
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -2639,7 +2639,6 @@ def main():
         # NEW VISUAL  —  GOAL-MOUTH MAP USING shotmaptar2 & goalmap3
         # ======================================================================
     
-        import json
     
         def extract_goalmouth(df):
             """Extract x, y, zoomRatio from the onGoalShot dict."""
