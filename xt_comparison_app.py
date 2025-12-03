@@ -3201,7 +3201,8 @@ def main():
             yaxis_title="",
             coloraxis_showscale=False,
             plot_bgcolor="rgba(0,0,0,0)",
-            width=1000, 
+            width=1000,
+            xaxis=dict(range=[0, 100]), 
         )
         
         st.plotly_chart(fig, use_container_width=False)  
