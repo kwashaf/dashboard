@@ -2500,6 +2500,9 @@ def main():
     # ================================================================
     # TAB 5 — Shot Maps
     # ================================================================
+    # ================================================================
+    # TAB 5 — Shot Maps
+    # ================================================================
     with tab5:
         st.session_state["active_tab"] = "Shot Maps"
         st.header("Shot Maps")
@@ -2513,10 +2516,8 @@ def main():
             (matchdata['playing_position'] == position)
         ].copy()
     
-        # Only events with a valid shotType
         playershots = playershots.loc[playershots['shotType'].notna()]
     
-        # Subsets
         shotmaptar2 = playershots.loc[playershots['typeId']=='Attempt Saved']
         shotmaptar2 = shotmaptar2.loc[shotmaptar2['expectedGoalsOnTarget']>0]
     
@@ -2530,7 +2531,6 @@ def main():
             (playershots['typeId'] != 'Own Goal')
         ]
     
-        # Summary stats
         num_goals = len(goalmap3)
         num_shots = len(shotmaptar2) + len(shotmapbk2) + len(shotmapoff2) + len(goalmap3)
         shots_on_target = len(shotmaptar2) + len(goalmap3)
@@ -2539,170 +2539,162 @@ def main():
         xg_sum = round(playershots['expectedGoals'].sum(), 2)
         xgot_sum = round(playershots['expectedGoalsOnTarget'].sum(), 2)
     
-        # ------------------------------------------
-        # CREATE FIGURE (MAIN SHOT MAP)
-        # ------------------------------------------
-        fig, ax = plt.subplots(figsize=(10, 7.5))
-        fig.set_facecolor(BackgroundColor)
-    
-        pitch_left = VerticalPitch(
-            pitch_type='opta',
-            half=True,
-            pitch_color=PitchColor,
-            line_color=PitchLineColor
-        )
-        pitch_left.draw(ax=ax)
-    
-        def get_marker_size(expectedGoals, scale_factor=1000):
-            return expectedGoals * scale_factor
-    
-        # Plot shots
-        pitch_left.scatter(
-            shotmaptar2.x, shotmaptar2.y,
-            s=get_marker_size(shotmaptar2.expectedGoals),
-            ax=ax, edgecolor='blue', facecolor='none', marker='o',
-            label='Shot on Target'
-        )
-    
-        pitch_left.scatter(
-            shotmapbk2.x, shotmapbk2.y,
-            s=get_marker_size(shotmapbk2.expectedGoals),
-            ax=ax, edgecolor='orange', facecolor='none', marker='o',
-            label='Shot Blocked'
-        )
-    
-        pitch_left.scatter(
-            shotmapoff2.x, shotmapoff2.y,
-            s=get_marker_size(shotmapoff2.expectedGoals),
-            ax=ax, edgecolor='red', facecolor='none', marker='o',
-            label='Shot off Target'
-        )
-    
-        pitch_left.scatter(
-            goalmap3.x, goalmap3.y,
-            s=get_marker_size(goalmap3.expectedGoals),
-            ax=ax, edgecolor='green', facecolor='none', marker='o',
-            label='Goal'
-        )
-    
-        # ------------------------------------------
-        # TITLE & STATS
-        # ------------------------------------------
-        ax.set_title(
-            f"{playername} - xG Shot Map as {position} | {season_choice} - {team_choice}",
-            fontsize=15,
-            color=TextColor
-        )
-    
-        handles, labels = ax.get_legend_handles_labels()
-        legend_markers = [
-            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
-                       markeredgecolor='blue', markersize=10),
-            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
-                       markeredgecolor='orange', markersize=10),
-            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
-                       markeredgecolor='red', markersize=10),
-            plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
-                       markeredgecolor='green', markersize=10)
-        ]
-    
-        ax.legend(
-            legend_markers, labels,
-            facecolor='none',
-            handlelength=5,
-            edgecolor='None',
-            bbox_to_anchor=(.22275, .94),
-            fontsize=8
-        )
-    
-        add_image(teamimage, fig, left=0.7, bottom=0.16, width=0.1, alpha=1)
-        add_image(wtaimaged, fig, left=0.472, bottom=0.165, width=0.08, alpha=1)
-    
-        ax.text(99, 73,   f'Goals Scored: {num_goals}', ha='left', fontsize=9, color='black')
-        ax.text(99, 71.5, f'Total xG: {xg_sum}',       ha='left', fontsize=9, color='black')
-        ax.text(99, 70,   f'Total xGOT: {xgot_sum}',   ha='left', fontsize=9, color='black')
-        ax.text(99, 68.5, f'Shots Taken: {num_shots}', ha='left', fontsize=9, color='black')
-        ax.text(99, 67,   f'Shots on Target: {shots_on_target}', ha='left', fontsize=9, color='black')
-        ax.text(99, 65.5, f'Shots Accuracy: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
-        ax.text(99, 64,   f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
-        ax.text(50, 101, 'Data from Opta - league matches only - larger circles shows higher xG chance',
-                ha='center', fontsize=8, color='black')
-    
-        # Display main map
-        left, center, right = st.columns([1, 3, 1])
-        with center:
-            st.image(fig_to_png_bytes(fig), width=800)
+        # ---------------------------------------------------------------
+        # LAYOUT → Two columns side-by-side
+        # ---------------------------------------------------------------
+        col1, col2 = st.columns([1, 1], gap="large")
     
     
+        # ===============================================================
+        # LEFT COLUMN: ORIGINAL SHOT MAP
+        # ===============================================================
+        with col1:
     
-        # ======================================================================
-        # NEW VISUAL  —  GOAL-MOUTH MAP USING shotmaptar2 & goalmap3
-        # ======================================================================
+            fig, ax = plt.subplots(figsize=(10, 7.5))
+            fig.set_facecolor(BackgroundColor)
     
-    
-        def extract_goalmouth(df):
-            """Extract x, y, zoomRatio from the onGoalShot dict."""
-            df = df.copy()
-            df['onGoalShot'] = df['onGoalShot'].apply(
-                lambda x: json.loads(x.replace("'", '"')) if isinstance(x, str) else x
+            pitch_left = VerticalPitch(
+                pitch_type='opta',
+                half=True,
+                pitch_color=PitchColor,
+                line_color=PitchLineColor
             )
-            df['goal_x'] = df['onGoalShot'].apply(lambda x: x.get('x') if isinstance(x, dict) else None)
-            df['goal_y'] = df['onGoalShot'].apply(lambda x: x.get('y') if isinstance(x, dict) else None)
-            df['zoomratio'] = df['onGoalShot'].apply(lambda x: x.get('zoomRatio') if isinstance(x, dict) else None)
-            return df
+            pitch_left.draw(ax=ax)
     
-        # Extract into new dfs
-        shotmap_gm = extract_goalmouth(shotmaptar2)
-        goalmap_gm = extract_goalmouth(goalmap3)
+            def get_marker_size(expectedGoals, scale_factor=1000):
+                return expectedGoals * scale_factor
     
-        # Sizing
-        size_factor = 800
-        sizes_tar = shotmap_gm['expectedGoalsOnTarget'].fillna(0).clip(lower=0.01) * size_factor
-        sizes_goals = goalmap_gm['expectedGoalsOnTarget'].fillna(0).clip(lower=0.01) * size_factor
+            pitch_left.scatter(
+                shotmaptar2.x, shotmaptar2.y,
+                s=get_marker_size(shotmaptar2.expectedGoals),
+                ax=ax, edgecolor='blue', facecolor='none', marker='o',
+                label='Shot on Target'
+            )
     
-        # Figure
-        figGM, axGM = plt.subplots(figsize=(12, 9))
+            pitch_left.scatter(
+                shotmapbk2.x, shotmapbk2.y,
+                s=get_marker_size(shotmapbk2.expectedGoals),
+                ax=ax, edgecolor='orange', facecolor='none', marker='o',
+                label='Shot Blocked'
+            )
     
-        # Goal posts
-        axGM.plot([0, 0], [0, 0.66], color='black', linewidth=4)
-        axGM.plot([2, 2], [0, 0.66], color='black', linewidth=4)
-        axGM.plot([0, 2], [0.66, 0.66], color='black', linewidth=4)
+            pitch_left.scatter(
+                shotmapoff2.x, shotmapoff2.y,
+                s=get_marker_size(shotmapoff2.expectedGoals),
+                ax=ax, edgecolor='red', facecolor='none', marker='o',
+                label='Shot off Target'
+            )
     
-        # Shots on target
-        axGM.scatter(
-            shotmap_gm['goal_x'], shotmap_gm['goal_y'],
-            s=sizes_tar, facecolors='none', edgecolors='red',
-            alpha=0.7, label='Shots on Target'
-        )
+            pitch_left.scatter(
+                goalmap3.x, goalmap3.y,
+                s=get_marker_size(goalmap3.expectedGoals),
+                ax=ax, edgecolor='green', facecolor='none', marker='o',
+                label='Goal'
+            )
     
-        # Goals
-        axGM.scatter(
-            goalmap_gm['goal_x'], goalmap_gm['goal_y'],
-            s=sizes_goals, facecolors='green', edgecolors='#381d54',
-            linewidths=1.5, label='Goals'
-        )
+            ax.set_title(
+                f"{playername} - xG Shot Map as {position} | {season_choice} - {team_choice}",
+                fontsize=15, color=TextColor
+            )
     
-        # Styling
-        axGM.set_xlim(-0.5, 2.5)
-        axGM.set_ylim(-0.2, 1.5)
-        axGM.set_xticks([])
-        axGM.set_yticks([])
+            handles, labels = ax.get_legend_handles_labels()
+            legend_markers = [
+                plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                           markeredgecolor='blue', markersize=10),
+                plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                           markeredgecolor='orange', markersize=10),
+                plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                           markeredgecolor='red', markersize=10),
+                plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
+                           markeredgecolor='green', markersize=10)
+            ]
     
-        for side in ['top', 'right', 'left', 'bottom']:
-            axGM.spines[side].set_visible(False)
+            ax.legend(
+                legend_markers, labels,
+                facecolor='none', handlelength=5, edgecolor='None',
+                bbox_to_anchor=(.22275, .94), fontsize=8
+            )
     
-        # Net
-        for x in [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8]:
-            axGM.plot([x, x], [0, 0.66], color='grey', linewidth=0.5)
-        for y in [0.0825, 0.165, 0.2475, 0.33, 0.4125, 0.495, 0.5775]:
-            axGM.plot([0, 2], [y, y], color='grey', linewidth=0.5)
+            add_image(teamimage, fig, left=0.7, bottom=0.16, width=0.1, alpha=1)
+            add_image(wtaimaged, fig, left=0.472, bottom=0.165, width=0.08, alpha=1)
     
-        axGM.set_title(
-            f"{playername} – Shot Placement (Goal Mouth View)",
-            fontsize=14, color=TextColor
-        )
+            ax.text(99, 73,   f'Goals Scored: {num_goals}', ha='left', fontsize=9, color='black')
+            ax.text(99, 71.5, f'Total xG: {xg_sum}',       ha='left', fontsize=9, color='black')
+            ax.text(99, 70,   f'Total xGOT: {xgot_sum}',   ha='left', fontsize=9, color='black')
+            ax.text(99, 68.5, f'Shots Taken: {num_shots}', ha='left', fontsize=9, color='black')
+            ax.text(99, 67,   f'Shots on Target: {shots_on_target}', ha='left', fontsize=9, color='black')
+            ax.text(99, 65.5, f'Shots Accuracy: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
+            ax.text(99, 64,   f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
     
-        st.pyplot(figGM)
+            st.image(fig_to_png_bytes(fig), width=750)
+    
+    
+    
+        # ===============================================================
+        # RIGHT COLUMN: NEW GOAL-MOUTH VISUAL
+        # ===============================================================
+        with col2:
+    
+            import json
+    
+            def extract_goalmouth(df):
+                df = df.copy()
+                df['onGoalShot'] = df['onGoalShot'].apply(
+                    lambda x: json.loads(x.replace("'", '"')) if isinstance(x, str) else x
+                )
+                df['goal_x'] = df['onGoalShot'].apply(lambda x: x.get('x') if isinstance(x, dict) else None)
+                df['goal_y'] = df['onGoalShot'].apply(lambda x: x.get('y') if isinstance(x, dict) else None)
+                df['zoomratio'] = df['onGoalShot'].apply(lambda x: x.get('zoomRatio') if isinstance(x, dict) else None)
+                return df
+    
+            shotmap_gm = extract_goalmouth(shotmaptar2)
+            goalmap_gm = extract_goalmouth(goalmap3)
+    
+            size_factor = 800
+            sizes_tar = shotmap_gm['expectedGoalsOnTarget'].fillna(0).clip(lower=0.01) * size_factor
+            sizes_goals = goalmap_gm['expectedGoalsOnTarget'].fillna(0).clip(lower=0.01) * size_factor
+    
+            # NEW background colour here
+            figGM, axGM = plt.subplots(figsize=(10, 7.5))
+            figGM.set_facecolor(BackgroundColor)
+            axGM.set_facecolor(PitchColor)
+    
+            # Goal frame
+            axGM.plot([0, 0], [0, 0.66], color='black', linewidth=4)
+            axGM.plot([2, 2], [0, 0.66], color='black', linewidth=4)
+            axGM.plot([0, 2], [0.66, 0.66], color='black', linewidth=4)
+    
+            axGM.scatter(
+                shotmap_gm['goal_x'], shotmap_gm['goal_y'],
+                s=sizes_tar, facecolors='none', edgecolors='red',
+                alpha=0.7, label='Shots on Target'
+            )
+    
+            axGM.scatter(
+                goalmap_gm['goal_x'], goalmap_gm['goal_y'],
+                s=sizes_goals, facecolors='green', edgecolors='#381d54',
+                linewidths=1.5, label='Goals'
+            )
+    
+            axGM.set_xlim(-0.5, 2.5)
+            axGM.set_ylim(-0.2, 1.5)
+            axGM.set_xticks([])
+            axGM.set_yticks([])
+    
+            for side in ['top', 'right', 'left', 'bottom']:
+                axGM.spines[side].set_visible(False)
+    
+            for x in [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8]:
+                axGM.plot([x, x], [0, 0.66], color='grey', linewidth=0.5)
+            for y in [0.0825, 0.165, 0.2475, 0.33, 0.4125, 0.495, 0.5775]:
+                axGM.plot([0, 2], [y, y], color='grey', linewidth=0.5)
+    
+            axGM.set_title(
+                f"{playername} – Shot Placement (Goal Mouth View)",
+                fontsize=14, color=TextColor
+            )
+    
+            st.pyplot(figGM)
 
 # ================================================================
 # TAB X — Creative Actions
