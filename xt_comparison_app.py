@@ -3083,9 +3083,13 @@ def main():
         
             top_display = top_15.reset_index()
             top_display.columns = ["Metric (raw column)", "Percentile"]
+        
+            # convert readable name
             top_display["Metric (raw column)"] = top_display["Metric (raw column)"].apply(nice_metric_name)
             top_display = top_display.rename(columns={"Metric (raw column)": "Metric"})
-            top_display["Percentile"] = top_display["Percentile"].round(1)
+        
+            # ensure numeric then round
+            top_display["Percentile"] = pd.to_numeric(top_display["Percentile"], errors="coerce").round(1)
         
             st.dataframe(top_display[["Metric", "Percentile"]], use_container_width=True)
         
@@ -3094,9 +3098,13 @@ def main():
         
             bottom_display = bottom_10.reset_index()
             bottom_display.columns = ["Metric (raw column)", "Percentile"]
+        
+            # convert readable name
             bottom_display["Metric (raw column)"] = bottom_display["Metric (raw column)"].apply(nice_metric_name)
             bottom_display = bottom_display.rename(columns={"Metric (raw column)": "Metric"})
-            bottom_display["Percentile"] = bottom_display["Percentile"].round(1)
+        
+            # ensure numeric then round
+            bottom_display["Percentile"] = pd.to_numeric(bottom_display["Percentile"], errors="coerce").round(1)
         
             st.dataframe(bottom_display[["Metric", "Percentile"]], use_container_width=True)
         # --------------------------------------------
