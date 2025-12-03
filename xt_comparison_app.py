@@ -771,6 +771,14 @@ def plot_profile_polygon_with_ball(
     label_color="white",
     title_color="white",
     title_pad=28,
+
+    # NEW — OVERLAY IMAGE OPTIONS
+    overlay_img=None,         # Image to place in centre
+    overlay_size=0.28,        # Width/height in figure coordinates (0–1)
+    overlay_alpha=0.25,       # Transparency to apply
+    overlay_center=True,      # Always centre unless overridden
+    overlay_left=None,        # If overlay_center=False, use manual coords
+    overlay_bottom=None,
 ):
     """
     Automatically draws a diamond (4 profiles) or pentagon (5 profiles)
@@ -828,19 +836,18 @@ def plot_profile_polygon_with_ball(
     ax.fill(poly[:,0], poly[:,1], color=polygon_color, alpha=polygon_alpha, zorder=3)
     ax.plot(poly[:,0], poly[:,1], linewidth=2, color=polygon_color, alpha=1.0, zorder=3)
 
-    # -------- CENTROID / FOOTBALL (ALWAYS INSIDE POLYGON) --------
+    # -------- CENTROID / FOOTBALL --------
     w = np.nan_to_num(scores_arr, nan=0.0)
 
-    # emphasise larger scores, but work on the *scaled* points
     if centroid_emphasis != 1.0:
         w = w ** centroid_emphasis
 
     if w.sum() > 0:
         w /= w.sum()
-        # use poly_pts (scaled by scores), not base_pts
         cx, cy = (w[:, None] * poly_pts).sum(axis=0)
     else:
         cx, cy = 0.0, 0.0
+
     if ball_img is not None:
         try:
             imagebox = OffsetImage(ball_img, zoom=football_zoom)
@@ -858,7 +865,6 @@ def plot_profile_polygon_with_ball(
         va = "center"
 
         if n == 4:
-            # Diamond-specific label positioning (matching your screenshot)
             if (x, y) == (0, 1):      # top
                 va = "bottom"
             elif (x, y) == (1, 0):    # right
@@ -868,7 +874,6 @@ def plot_profile_polygon_with_ball(
             elif (x, y) == (-1, 0):   # left
                 ha = "right"
         else:
-            # Generic nice positioning for pentagon
             if abs(y) < 0.15:
                 ha = "left" if x > 0 else "right"
             elif y > 0:
@@ -885,7 +890,7 @@ def plot_profile_polygon_with_ball(
             color=label_color,
         )
 
-    # Title
+    # -------- TITLE --------
     ax.set_title(
         f"{player_name} – Position Profile ({position})",
         pad=title_pad,
@@ -897,8 +902,33 @@ def plot_profile_polygon_with_ball(
     ax.set_ylim(-1.3, 1.3)
     ax.set_aspect("equal")
     ax.axis("off")
-    return fig
 
+    # -------- NEW: CENTERED OVERLAY IMAGE --------
+    if overlay_img is not None:
+        try:
+            arr = overlay_img.copy()
+
+            # Apply transparency
+            if overlay_alpha < 1:
+                arr = arr.astype(float) / 255.0
+                arr[..., :3] *= overlay_alpha
+                arr = (arr * 255).astype("uint8")
+
+            if overlay_center:
+                left = 0.5 - overlay_size / 2
+                bottom = 0.5 - overlay_size / 2
+            else:
+                left = overlay_left or 0.4
+                bottom = overlay_bottom or 0.4
+
+            newax = fig.add_axes([left, bottom, overlay_size, overlay_size])
+            newax.imshow(arr)
+            newax.axis("off")
+
+        except Exception as e:
+            print("Overlay image failed:", e)
+
+    return fig
 
 TEAMLOG_FILE = "teamlog.csv"
 
@@ -1186,7 +1216,7 @@ def plot_xt_comparison_for_player(
     add_image(wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
 
     ax.set_title(
-        f"{first_name} | Impact by Pitch Area as {position} in {season}",
+        f"{first_name} | Impact by Pitch Area as {position}",
         fontsize=14,
         pad=10,
         color="white",
