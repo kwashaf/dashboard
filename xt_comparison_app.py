@@ -388,9 +388,35 @@ def create_pass_and_carry_sonar(
     fig, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
     fig.set_facecolor(BackgroundColor)
     
-
     sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
     sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
+
+    # =====================================================
+    # 3. ADD CENTERED IMAGE TO BOTH PITCHES
+    # =====================================================
+    def add_center_logo(ax, img, alpha=0.25, size=0.55):
+        arr = img.copy()
+        if alpha < 1:
+            arr = arr.astype(float) / 255.0
+            arr[..., :3] *= alpha
+            arr = (arr * 255).astype("uint8")
+
+        left   = 0.5 - size/2
+        right  = 0.5 + size/2
+        bottom = 0.5 - size/2
+        top    = 0.5 + size/2
+
+        ax.imshow(
+            arr,
+            extent=[left, right, bottom, top],
+            transform=ax.transAxes,
+            zorder=0.5,
+            aspect="equal"
+        )
+
+    # --- APPLY LOGO TO BOTH PANELS ---
+    add_center_logo(axes[0], wtaimaged, alpha=0.25, size=0.55)
+    add_center_logo(axes[1], wtaimaged, alpha=0.25, size=0.55)
 
     return fig
 def determine_def_zone(row):
