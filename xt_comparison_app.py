@@ -924,7 +924,7 @@ def plot_profile_polygon_with_ball(
             ax.imshow(
                 arr,
                 extent=[left, right, bottom, top],   # center overlay
-                zorder=1.5,                          # behind polygon (3), above grid (1)
+                zorder=4,                          # behind polygon (3), above grid (1)
                 transform=ax.transAxes,              # THIS IS THE SECRET SAUCE
                 aspect='equal',
             )
