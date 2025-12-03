@@ -2517,14 +2517,14 @@ def main():
         playershots = playershots.loc[playershots['shotType'].notna()]
     
         # Subsets
-
         shotmaptar2 = playershots.loc[playershots['typeId']=='Attempt Saved']
         shotmaptar2 = shotmaptar2.loc[shotmaptar2['expectedGoalsOnTarget']>0]
-
+    
         shotmapbk2 = playershots.loc[playershots['typeId']=='Attempt Saved']
         shotmapbk2 = shotmapbk2.loc[shotmapbk2['expectedGoalsOnTarget']== 0]
-
+    
         shotmapoff2 = playershots.loc[playershots['typeId'] == 'Miss']
+    
         goalmap3 = playershots.loc[
             (playershots['typeId'] == 'Goal') &
             (playershots['typeId'] != 'Own Goal')
@@ -2540,7 +2540,7 @@ def main():
         xgot_sum = round(playershots['expectedGoalsOnTarget'].sum(), 2)
     
         # ------------------------------------------
-        # CREATE FIGURE
+        # CREATE FIGURE (MAIN SHOT MAP)
         # ------------------------------------------
         fig, ax = plt.subplots(figsize=(10, 7.5))
         fig.set_facecolor(BackgroundColor)
@@ -2553,13 +2553,10 @@ def main():
         )
         pitch_left.draw(ax=ax)
     
-        # Marker size from xG
         def get_marker_size(expectedGoals, scale_factor=1000):
             return expectedGoals * scale_factor
     
-        # ------------------------------------------
-        # PLOT SHOTS
-        # ------------------------------------------
+        # Plot shots
         pitch_left.scatter(
             shotmaptar2.x, shotmaptar2.y,
             s=get_marker_size(shotmaptar2.expectedGoals),
@@ -2589,7 +2586,7 @@ def main():
         )
     
         # ------------------------------------------
-        # TITLE (uses default Matplotlib font)
+        # TITLE & STATS
         # ------------------------------------------
         ax.set_title(
             f"{playername} - xG Shot Map as {position} | {season_choice} - {team_choice}",
@@ -2597,11 +2594,7 @@ def main():
             color=TextColor
         )
     
-        # ------------------------------------------
-        # LEGEND – SAME LOCATION AS YOUR ORIGINAL
-        # ------------------------------------------
         handles, labels = ax.get_legend_handles_labels()
-    
         legend_markers = [
             plt.Line2D([0], [0], marker='o', color='none', markerfacecolor='none',
                        markeredgecolor='blue', markersize=10),
@@ -2614,8 +2607,7 @@ def main():
         ]
     
         ax.legend(
-            legend_markers,
-            labels,
+            legend_markers, labels,
             facecolor='none',
             handlelength=5,
             edgecolor='None',
@@ -2623,34 +2615,95 @@ def main():
             fontsize=8
         )
     
-        # ------------------------------------------
-        # LOGOS
-        # ------------------------------------------
-        add_image(teamimage, fig, left=0.7, bottom=0.16, width=0.1,
-                  alpha=1, interpolation='hanning')
-        add_image(wtaimaged, fig, left=0.472, bottom=0.165, width=0.08,
-                  alpha=1, interpolation='hanning')
+        add_image(teamimage, fig, left=0.7, bottom=0.16, width=0.1, alpha=1)
+        add_image(wtaimaged, fig, left=0.472, bottom=0.165, width=0.08, alpha=1)
     
-        # ------------------------------------------
-        # TEXT BLOCK (all standard fonts)
-        # ------------------------------------------
-        ax.text(99, 73,   f'Goals Scored: {num_goals}',              ha='left', fontsize=9, color='black')
-        ax.text(99, 71.5, f'Total xG: {xg_sum}',                     ha='left', fontsize=9, color='black')
-        ax.text(99, 70,   f'Total xGOT: {xgot_sum}',                 ha='left', fontsize=9, color='black')
-        ax.text(99, 68.5, f'Shots Taken: {num_shots}',               ha='left', fontsize=9, color='black')
-        ax.text(99, 67, f'Shots on Target: {shots_on_target}',               ha='left', fontsize=9, color='black')
-
-        ax.text(99, 65.5,   f'Shots Accuracy: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
-        ax.text(99, 64, f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
-        ax.text(50, 101,  'Data from Opta - league matches only - larger circles shows higher xG chance',
+        ax.text(99, 73,   f'Goals Scored: {num_goals}', ha='left', fontsize=9, color='black')
+        ax.text(99, 71.5, f'Total xG: {xg_sum}',       ha='left', fontsize=9, color='black')
+        ax.text(99, 70,   f'Total xGOT: {xgot_sum}',   ha='left', fontsize=9, color='black')
+        ax.text(99, 68.5, f'Shots Taken: {num_shots}', ha='left', fontsize=9, color='black')
+        ax.text(99, 67,   f'Shots on Target: {shots_on_target}', ha='left', fontsize=9, color='black')
+        ax.text(99, 65.5, f'Shots Accuracy: {shot_conversion_rate}%', ha='left', fontsize=9, color='black')
+        ax.text(99, 64,   f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
+        ax.text(50, 101, 'Data from Opta - league matches only - larger circles shows higher xG chance',
                 ha='center', fontsize=8, color='black')
     
-        # ------------------------------------------
-        # STREAMLIT DISPLAY LIKE OTHER TABS
-        # ------------------------------------------
+        # Display main map
         left, center, right = st.columns([1, 3, 1])
         with center:
             st.image(fig_to_png_bytes(fig), width=800)
+    
+    
+    
+        # ======================================================================
+        # NEW VISUAL  —  GOAL-MOUTH MAP USING shotmaptar2 & goalmap3
+        # ======================================================================
+    
+        import json
+    
+        def extract_goalmouth(df):
+            """Extract x, y, zoomRatio from the onGoalShot dict."""
+            df = df.copy()
+            df['onGoalShot'] = df['onGoalShot'].apply(
+                lambda x: json.loads(x.replace("'", '"')) if isinstance(x, str) else x
+            )
+            df['goal_x'] = df['onGoalShot'].apply(lambda x: x.get('x') if isinstance(x, dict) else None)
+            df['goal_y'] = df['onGoalShot'].apply(lambda x: x.get('y') if isinstance(x, dict) else None)
+            df['zoomratio'] = df['onGoalShot'].apply(lambda x: x.get('zoomRatio') if isinstance(x, dict) else None)
+            return df
+    
+        # Extract into new dfs
+        shotmap_gm = extract_goalmouth(shotmaptar2)
+        goalmap_gm = extract_goalmouth(goalmap3)
+    
+        # Sizing
+        size_factor = 800
+        sizes_tar = shotmap_gm['expectedGoalsOnTarget'].fillna(0).clip(lower=0.01) * size_factor
+        sizes_goals = goalmap_gm['expectedGoalsOnTarget'].fillna(0).clip(lower=0.01) * size_factor
+    
+        # Figure
+        figGM, axGM = plt.subplots(figsize=(12, 9))
+    
+        # Goal posts
+        axGM.plot([0, 0], [0, 0.66], color='black', linewidth=4)
+        axGM.plot([2, 2], [0, 0.66], color='black', linewidth=4)
+        axGM.plot([0, 2], [0.66, 0.66], color='black', linewidth=4)
+    
+        # Shots on target
+        axGM.scatter(
+            shotmap_gm['goal_x'], shotmap_gm['goal_y'],
+            s=sizes_tar, facecolors='none', edgecolors='red',
+            alpha=0.7, label='Shots on Target'
+        )
+    
+        # Goals
+        axGM.scatter(
+            goalmap_gm['goal_x'], goalmap_gm['goal_y'],
+            s=sizes_goals, facecolors='green', edgecolors='#381d54',
+            linewidths=1.5, label='Goals'
+        )
+    
+        # Styling
+        axGM.set_xlim(-0.5, 2.5)
+        axGM.set_ylim(-0.2, 1.5)
+        axGM.set_xticks([])
+        axGM.set_yticks([])
+    
+        for side in ['top', 'right', 'left', 'bottom']:
+            axGM.spines[side].set_visible(False)
+    
+        # Net
+        for x in [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8]:
+            axGM.plot([x, x], [0, 0.66], color='grey', linewidth=0.5)
+        for y in [0.0825, 0.165, 0.2475, 0.33, 0.4125, 0.495, 0.5775]:
+            axGM.plot([0, 2], [y, y], color='grey', linewidth=0.5)
+    
+        axGM.set_title(
+            f"{playername} – Shot Placement (Goal Mouth View)",
+            fontsize=14, color=TextColor
+        )
+    
+        st.pyplot(figGM)
 
 # ================================================================
 # TAB X — Creative Actions
