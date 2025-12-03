@@ -3077,22 +3077,28 @@ def main():
             return SCATTER_METRIC_MAP.get(base, base)
 
         col1, col2 = st.columns(2)
+        
         with col1:
             st.markdown("**Selected player's strongest metrics (top 15 percentiles)**")
+        
             top_display = top_15.reset_index()
             top_display.columns = ["Metric (raw column)", "Percentile"]
-            top_display["Metric"] = top_display["Metric"].apply(nice_metric_name)
+            top_display["Metric (raw column)"] = top_display["Metric (raw column)"].apply(nice_metric_name)
+            top_display = top_display.rename(columns={"Metric (raw column)": "Metric"})
             top_display["Percentile"] = top_display["Percentile"].round(1)
+        
             st.dataframe(top_display[["Metric", "Percentile"]], use_container_width=True)
-
+        
         with col2:
             st.markdown("**Selected player's weakest metrics (bottom 10 percentiles)**")
+        
             bottom_display = bottom_10.reset_index()
             bottom_display.columns = ["Metric (raw column)", "Percentile"]
-            bottom_display["Metric"] = bottom_display["Metric"].apply(nice_metric_name)
+            bottom_display["Metric (raw column)"] = bottom_display["Metric (raw column)"].apply(nice_metric_name)
+            bottom_display = bottom_display.rename(columns={"Metric (raw column)": "Metric"})
             bottom_display["Percentile"] = bottom_display["Percentile"].round(1)
+        
             st.dataframe(bottom_display[["Metric", "Percentile"]], use_container_width=True)
-
         # --------------------------------------------
         # 7. Build feature set:
         #    - the 25 (max) selected percentile metrics
