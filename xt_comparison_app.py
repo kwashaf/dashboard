@@ -1183,7 +1183,7 @@ def plot_xt_comparison_for_player(
         )
         ax.add_patch(rect)
     
-    add_image(wtaimaged, fig, left=0.4325, bottom=0.44, width=0.2, alpha=0.25)
+    add_image(wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
 
     ax.set_title(
         f"{first_name} | Impact by Pitch Area as {position} in {season}",
