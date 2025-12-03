@@ -12,4 +12,4 @@ fonttools
 scipy
 plotly
 scikit-learn
-json
+
