@@ -3186,10 +3186,11 @@ def main():
         # 👇 Custom hover text:
         # "playername - teamname\nminutes_played"
         fig.update_traces(
-            customdata=df_plot[["player_name", "team_name", "minutes_played"]],
+            customdata=df_plot[["player_name", "team_name", "minutes_played", "similarity"]],
             hovertemplate=(
                 "<b>%{customdata[0]} - %{customdata[1]}</b><br>"
-                "Minutes played: %{customdata[2]:.0f}"
+                "Minutes played: %{customdata[2]:.0f}<br>"
+                "Similarity Score: %{customdata[3]:.2f}"
                 "<extra></extra>"
             ),
             marker_line_width=0,
@@ -3202,7 +3203,12 @@ def main():
             coloraxis_showscale=False,
             plot_bgcolor="rgba(0,0,0,0)",
             width=1000,
-            xaxis=dict(range=[0, 100]), 
+            xaxis=dict(
+            range=[0, 100],
+            tickmode="linear",
+            dtick=20,
+            ticks="outside"
+            ),
         )
         
         st.plotly_chart(fig, use_container_width=False)  
