@@ -3069,7 +3069,7 @@ def main():
 
         final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
 
-        st.subheader(f"Top 10 Most Similar Players to {playername} ({position})")
+        st.subheader(f"Top 10 Most Similar Playing Style to {playername} as ({position})")
 
         st.dataframe(
             df_display[final_cols].style.format({
