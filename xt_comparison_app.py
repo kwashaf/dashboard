@@ -3075,7 +3075,7 @@ def main():
             base = pct_col.replace("__pct", "")
             # Try to use the scatter map labels if available, else raw name
             return SCATTER_METRIC_MAP.get(base, base)
-
+        """
         col1, col2 = st.columns(2)
         
         with col1:
@@ -3107,6 +3107,7 @@ def main():
             bottom_display["Percentile"] = pd.to_numeric(bottom_display["Percentile"], errors="coerce").round(1)
         
             st.dataframe(bottom_display[["Metric", "Percentile"]], use_container_width=True)
+        """
         # --------------------------------------------
         # 7. Build feature set:
         #    - the 25 (max) selected percentile metrics
@@ -3183,25 +3184,46 @@ def main():
         df_sorted = df.sort_values("similarity", ascending=False)
         df_comps = df_sorted[df_sorted.index != player_index].head(10)
 
-        df_display = df_comps.copy()
-        df_display["minutes_played"] = df_display["minutes_played"].round(0).astype(int)
-
-        df_display = df_display.rename(columns={
-            "player_name": "Player",
-            "team_name": "Team",
-            "minutes_played": "Minutes",
-            "similarity": "Similarity Score",
-        })
-
-        final_cols = ["Player", "Team", "Minutes", "Similarity Score"]
-
-        st.subheader(f"Top 10 Most Similar Playing Style to {playername} as ({position})")
-        st.dataframe(
-            df_display[final_cols].style.format({
-                "Similarity Score": "{:.1f}"
-            }),
-            use_container_width=True,
+        # ------------------------------------------------------
+        # HORIZONTAL BAR CHART OF THE TOP 10 SIMILAR PLAYERS
+        # ------------------------------------------------------
+        import plotly.express as px
+        
+        df_plot = df_comps.copy()
+        df_plot = df_plot.sort_values("similarity", ascending=True)  # so best is on top
+        
+        # player labels = Player (Team)
+        df_plot["label"] = df_plot["Player"] + " (" + df_plot["Team"] + ")"
+        
+        fig = px.bar(
+            df_plot,
+            x="similarity",
+            y="label",
+            orientation="h",
+            range_x=[0, 100],
+            color="similarity",
+            color_continuous_scale=[
+                (0.00, "red"),
+                (0.45, "orange"),
+                (0.75, "yellowgreen"),
+                (1.00, "green"),
+            ],
+            labels={"similarity": "Similarity Score", "label": ""},
+            height=500,
         )
+        
+        fig.update_layout(
+            title=f"Top 10 Most Similar Players to {playername} ({position})",
+            xaxis_title="Similarity Score (0–100)",
+            yaxis_title="",
+            coloraxis_showscale=False,
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
+        
+        # Clean bar appearance
+        fig.update_traces(marker_line_width=0)
+        
+        st.plotly_chart(fig, use_container_width=True)
 
         st.info(
             "Similarity is based only on this player's 15 strongest and 10 weakest "
