@@ -3193,7 +3193,7 @@ def main():
         df_plot = df_plot.sort_values("similarity", ascending=True)  # so best is on top
         
         # player labels = Player (Team)
-        df_plot["label"] = df_plot["Player"] + " (" + df_plot["Team"] + ")"
+        df_plot["label"] = df_plot["player_name"] + " (" + df_plot["team_name"] + ")"
         
         fig = px.bar(
             df_plot,
