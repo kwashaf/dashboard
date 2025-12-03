@@ -903,29 +903,31 @@ def plot_profile_polygon_with_ball(
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # -------- NEW: CENTERED OVERLAY IMAGE (WITH PROPER Z-ORDER) --------
-    # -------- NEW: CENTERED OVERLAY IMAGE USING AnnotationBbox --------
+    # -------- NEW: CENTERED OVERLAY IMAGE (RELIABLE METHOD) --------
     if overlay_img is not None:
         try:
-            # Apply transparency
             arr = overlay_img.copy()
+    
+            # Apply transparency
             if overlay_alpha < 1:
                 arr = arr.astype(float) / 255.0
                 arr[..., :3] *= overlay_alpha
                 arr = (arr * 255).astype("uint8")
     
-            # Create image artist
-            imagebox = OffsetImage(arr, zoom=overlay_size)
+            # Determine image bounds in axis coordinates
+            size = overlay_size      # overlay_size = fraction of axis width/height
+            left = 0.5 - size / 2
+            right = 0.5 + size / 2
+            bottom = 0.5 - size / 2
+            top = 0.5 + size / 2
     
-            # Center at (0, 0) — the middle of the radar
-            ab = AnnotationBbox(
-                imagebox,
-                (0, 0),
-                frameon=False,
-                zorder=1.5  # sits BELOW polygon (3) but ABOVE background (0)
+            ax.imshow(
+                arr,
+                extent=[left, right, bottom, top],   # center overlay
+                zorder=1.5,                          # behind polygon (3), above grid (1)
+                transform=ax.transAxes,              # THIS IS THE SECRET SAUCE
+                aspect='equal',
             )
-    
-            ax.add_artist(ab)
     
         except Exception as e:
             print("Overlay image failed:", e)
