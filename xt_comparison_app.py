@@ -34,7 +34,15 @@ PitchColor = "#f5f6fc"
 BackgroundColor = "#381d54"
 PitchLineColor = "Black"
 TextColor = "White"
-
+    # -----------------------------------------------------------------
+    # 5. Load images (WTA + team badge)
+    # -----------------------------------------------------------------
+wtaimaged = Image.open(
+    requests.get(
+        "https://github.com/WTAnalysis/dashboard/raw/main/wtatransnew.png",
+        stream=True,
+        ).raw
+)
 SEASON_MAP = {
     "2025":    "2025",
     "2025/26": "2526",
@@ -1174,6 +1182,7 @@ def plot_xt_comparison_for_player(
             alpha=0.95,
         )
         ax.add_patch(rect)
+    
     add_image(wtaimaged, fig, left=0.4825, bottom=0.5, width=0.06, alpha=0.25)
 
     ax.set_title(
@@ -1334,15 +1343,7 @@ def build_player_pizza(
     playerrow = playerrow.iloc[0]
     values = playerrow[cols].tolist()
 
-    # -----------------------------------------------------------------
-    # 5. Load images (WTA + team badge)
-    # -----------------------------------------------------------------
-    wtaimaged = Image.open(
-        requests.get(
-            "https://github.com/WTAnalysis/dashboard/raw/main/wtatransnew.png",
-            stream=True,
-        ).raw
-    )
+
 
     # TEAM BADGE LOOKUP
     teamname = playerrow["team_name"]
