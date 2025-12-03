@@ -391,6 +391,8 @@ def create_pass_and_carry_sonar(
 
     sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
     sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
+    add_image(axes[0], wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
+    add_image(axes[1], wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
 
     return fig
 def determine_def_zone(row):
