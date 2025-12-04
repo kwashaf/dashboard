@@ -2681,7 +2681,7 @@ def main():
     
             axGM.scatter(
                 shotmap_gm['goal_x'], shotmap_gm['goal_y'],
-                s=sizes_tar, facecolors='none', edgecolors='red',
+                s=sizes_tar, facecolors='none', edgecolors='blue',
                 alpha=0.7, label='Shots on Target'
             )
     
