@@ -266,7 +266,7 @@ SIMILARITY_METRICS = [
     "shot_conversion",
     "shot_quality",
     "box_touches_per_shot",
-  #  "xG_per_shot",
+    "xG_per_shot",
 ]
 
 def resolve_metric(display_label: str) -> str:
