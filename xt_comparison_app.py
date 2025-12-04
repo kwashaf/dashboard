@@ -3019,8 +3019,8 @@ def main():
             lg for lg in COMPARISON_MAP.keys()
             if lg != competition_choice  # exclude currently selected league
         ]
-        st.write("Selected league:", competition_choice)
-        st.write("Available COMPARISON_MAP keys:", list(COMPARISON_MAP.keys()))
+        #st.write("Selected league:", competition_choice)
+        #st.write("Available COMPARISON_MAP keys:", list(COMPARISON_MAP.keys()))
         selected_extra_leagues = st.multiselect(
             "Select up to 4 additional leagues:",
             options=available_leagues,
