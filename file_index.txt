@@ -26,5 +26,8 @@ SCO1_2025_playerstats_by_position_group.xlsx
 SWE1_2025_playerstats_by_position_group.xlsx
 BRA1_2025_playerstats_by_position_group.xlsx
 BEL1_2526_playerstats_by_position_group.xlsx
+USA1_2025_playerstats_by_position_group.xlsx
+JAP1_2025_playerstats_by_position_group.xlsx
+
 
 
