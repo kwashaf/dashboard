@@ -1884,7 +1884,7 @@ def create_creative_actions_figure(
 # -----------------------------------------------------------------------------
 def main():
     st.title("WT Analysis - Player Dashboard")
-    st.subheader("Select Season, Competition, Player & Position on the Left")
+    st.subheader("Select Season, Competition, Player & Position on the Left - Contact @WT_Analysis on X for more info")
 
     st.sidebar.header("Data Sources")
 
