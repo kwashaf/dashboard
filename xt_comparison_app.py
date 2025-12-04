@@ -1886,7 +1886,7 @@ def main():
     st.title("WT Analysis - Player Dashboard")
     st.subheader("Select Season, Competition, Player & Position on the Left - Contact @WT_Analysis on X for more info")
 
-    st.sidebar.header("Data Sources")
+    st.sidebar.header("League Selection")
 
     # --------------------------
     # 1. Competition selection (now first)
@@ -1966,7 +1966,7 @@ def main():
     # --------------------------
     # USER INPUT — Player + Position
     # --------------------------
-    st.sidebar.header("User Input")
+    st.sidebar.header("Player & Position")
 
     all_players = (
         matchdata["playerName"]
