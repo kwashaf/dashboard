@@ -2713,7 +2713,7 @@ def main():
             st.pyplot(figGM)
 
 # ================================================================
-# TAB X — Creative Actions
+# TAB6 — Creative Actions
 # ================================================================
     with tab6:
         st.session_state["active_tab"] = "Creative Actions"
@@ -3312,7 +3312,20 @@ def main():
             fixedrange=True 
             ),
         )
-        
+            fig.add_layout_image(
+                dict(
+                    source=wtaimaged,
+                    xref="paper", yref="paper",
+                    x=0.8,
+                    y=0.01,
+                    sizex=0.20,
+                    sizey=0.20,
+                    xanchor="right",
+                    yanchor="bottom",
+                    opacity=0.5,
+                    layer="above",
+                )
+            )        
         st.plotly_chart(fig, use_container_width=False)  
 
         st.info(
