@@ -66,6 +66,7 @@ COMP_MAP = {
     "Championship":    "ENG2",
     "League One":    "ENG3",
     "League Two":    "ENG4",
+    "Superleague":   "GRE1",
 }
 # -----------------------------------------------------------------------------
 # POSITION NORMALISATION
@@ -998,6 +999,7 @@ COMPARISON_MAP = {
     "Championship": "ENG2_2526",
     "League One": "ENG3_2526",
     "League Two": "ENG4_2526",
+    "Superleague": "GRE1_2526",
 }
 
 @st.cache_data
