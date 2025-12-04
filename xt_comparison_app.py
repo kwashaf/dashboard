@@ -937,12 +937,12 @@ def plot_profile_polygon_with_ball(
         except Exception as e:
             print("Overlay image failed:", e)
     fig.text(
-        0.5, -0.04,
+        0.5, 0,
         "Created by @WT_Analysis — Data from Opta",
         ha="center",
         va="center",
-        fontsize=9,
-        color="white"
+        fontsize=8,
+        color=TextColor
     )
     return fig
 
