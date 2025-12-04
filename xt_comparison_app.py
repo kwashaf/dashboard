@@ -20,7 +20,7 @@ from mplsoccer import VerticalPitch, PyPizza, add_image
 # -----------------------------------------------------------------------------
 # PAGE CONFIG
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="WT Analysis - Player Dashboard", layout="wide")
+st.set_page_config(page_title="WT Analysis - Player Data Dashboard", layout="wide")
 
 # -----------------------------------------------------------------------------
 # REPO CONFIG – tweak these if layout changes
@@ -1883,8 +1883,8 @@ def create_creative_actions_figure(
 # STREAMLIT APP
 # -----------------------------------------------------------------------------
 def main():
-    st.title("WT Analysis - Player Dashboard")
-    st.subheader("Select Season, Competition, Player & Position on the Left - Contact @WT_Analysis on X for more info")
+    st.title("WT Analysis - Player Data Dashboard")
+    st.subheader("Select League, Player & Position on the Left - Contact @WT_Analysis on X for more info")
 
     st.sidebar.header("League Selection")
 
