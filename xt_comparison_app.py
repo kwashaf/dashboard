@@ -67,6 +67,8 @@ COMP_MAP = {
     "League One":    "ENG3",
     "League Two":    "ENG4",
     "Superleague":   "GRE1",
+    "MLS":            "USA1",
+    "J-League":        "JAP1",
 }
 # -----------------------------------------------------------------------------
 # POSITION NORMALISATION
@@ -1007,6 +1009,8 @@ COMPARISON_MAP = {
     "League One": "ENG3_2526",
     "League Two": "ENG4_2526",
     "Superleague": "GRE1_2526",
+    "MLS": "USA1_2025",
+    "J-League": "JAP1_2025",
 }
 
 @st.cache_data
@@ -1901,7 +1905,7 @@ def main():
     # 2. Season auto-selection (locked)
     # --------------------------
     # Leagues that must use 2025
-    forced_2025 = ["Brasilerao", "League of Ireland", "Allsvenskan"]
+    forced_2025 = ["Brasilerao", "League of Ireland", "Allsvenskan", "MLS", "J-League"]
 
     if competition_choice in forced_2025:
         season_choice = "2025"
