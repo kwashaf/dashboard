@@ -3320,7 +3320,7 @@ def main():
                 y=0.01,
                 sizex=0.20,
                 sizey=0.20,
-                xanchor="right",
+                xanchor="left",
                 yanchor="bottom",
                 opacity=0.5,
                 layer="above",
