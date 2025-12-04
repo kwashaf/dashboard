@@ -2044,7 +2044,7 @@ def main():
     positions = position_minutes["position_group"].astype(str).tolist()
     
     if not positions:
-        st.error(f"No positions with at least 25 minutes played for {playername} at {teamname}.")
+        st.error(f"Please check your selections on the left - no data available with current filters")
         return
     
     # -------------------------------------------------------
