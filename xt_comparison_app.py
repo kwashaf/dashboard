@@ -1019,7 +1019,7 @@ def load_match_data(parquet_filename: str):
         df = pd.read_parquet(io.BytesIO(fetch_raw_file(url)))
         return df
     except Exception as e:
-        st.error(f"Error reading parquet file '{parquet_filename}': {e}")
+        st.error(f"Error reading match file")
         return pd.DataFrame()
 
 
@@ -1031,7 +1031,7 @@ def load_minute_log(excel_filename: str):
         df = pd.read_excel(io.BytesIO(fetch_raw_file(url)))
         return df
     except Exception as e:
-        st.error(f"Error reading Excel file '{excel_filename}': {e}")
+        st.error(f"Error reading player file")
         return pd.DataFrame()
 
 
