@@ -2226,10 +2226,15 @@ def main():
     # --------------------------
     # TABS — Pitch Map + Player Pizza
     # --------------------------
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
-        ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling",
-         "Shot Maps", "Creative Actions", "Metric Comparisons",
-         "Defensive Actions", "Passes & Carries", "Player Similarity"]
+    #tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
+    #    ["Pitch Impact Map", "Player Pizza", "Player Actions", "Player Profiling",
+    #     "Shot Maps", "Creative Actions", "Metric Comparisons",
+    #     "Defensive Actions", "Passes & Carries", "Player Similarity"]
+    #)
+    tab2, tab4, tab3, tab1, tab8, tab6, tab9, tab5, tab7, tab10 = st.tabs(
+        ["Player Pizza", "Player Profiling", "Player Actions", "Pitch Impact",
+         "Defensive Actions", "Creative Actions", "Passes & Carries", "Shot Maps",
+         "Metric Comparison", "Player Similarity"]
     )
     # Init session state
     if "active_tab" not in st.session_state:
