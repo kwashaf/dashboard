@@ -1670,7 +1670,7 @@ def create_player_actions_figure(
     # PASS RECEPTIONS (PITCH 3)
     # ---------------------------------------------------------
     points_rec = np.array([(row['end_y'], row['end_x']) for _, row in playerrecpass.iterrows()])
-
+    radius = 15
     if len(points_rec) > 3:
         kde_rec = gaussian_kde(points_rec.T)
         density_rec = kde_rec(np.vstack([x_grid.ravel(), y_grid.ravel()]))
