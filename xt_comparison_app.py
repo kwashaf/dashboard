@@ -1984,7 +1984,7 @@ def main():
     default_player = "" if "N. Williams" in all_players else all_players[0]
 
     playername = st.sidebar.selectbox(
-        "Select player",
+        "Select Player",
         all_players,
         index=all_players.index(default_player),
     )
@@ -2070,7 +2070,7 @@ def main():
     
     # Sidebar selector
     position = st.sidebar.selectbox(
-        "Select position",
+        "Select Position",
         positions,
         index=positions.index(default_position) if default_position in positions else 0,
     )
