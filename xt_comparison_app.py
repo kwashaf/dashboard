@@ -3302,18 +3302,20 @@ def main():
             xaxis_title="Similarity Score (0–100)",
             yaxis_title="",
             coloraxis_showscale=False,
-            plot_bgcolor="rgba(0,0,0,0)",
+        
+            plot_bgcolor=PitchColor,           # inner plot background
+            paper_bgcolor=BackgroundColor,     # overall figure background
+            font=dict(color=TextColor),        # axis + title font colours
+        
             width=1000,
+        
             xaxis=dict(
                 range=[0, 105],
                 tickmode="linear",
                 dtick=20,
                 ticks="outside",
                 fixedrange=True,
-                plot_bgcolor=PitchColor,
-                paper_bgcolor=BackgroundColor,
-                font=dict(color=TextColor)
-            ),
+            )
         )
         fig.add_layout_image(
             dict(
