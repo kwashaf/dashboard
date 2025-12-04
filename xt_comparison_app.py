@@ -3309,7 +3309,11 @@ def main():
             tickmode="linear",
             dtick=20,
             ticks="outside",
-            fixedrange=True 
+            fixedrange=True,
+            plot_bgcolor=PitchColor,     # inner plot background
+            paper_bgcolor=BackgroundColor,  # outer background
+    
+            font=dict(color=TextColor)
             ),
         )
         fig.add_layout_image(
