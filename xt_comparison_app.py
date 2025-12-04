@@ -3305,15 +3305,14 @@ def main():
             plot_bgcolor="rgba(0,0,0,0)",
             width=1000,
             xaxis=dict(
-            range=[0, 105],
-            tickmode="linear",
-            dtick=20,
-            ticks="outside",
-            fixedrange=True,
-            plot_bgcolor=PitchColor,     # inner plot background
-            paper_bgcolor=BackgroundColor,  # outer background
-    
-            font=dict(color=TextColor)
+                range=[0, 105],
+                tickmode="linear",
+                dtick=20,
+                ticks="outside",
+                fixedrange=True,
+                plot_bgcolor=PitchColor,
+                paper_bgcolor=BackgroundColor,
+                font=dict(color=TextColor)
             ),
         )
         fig.add_layout_image(
