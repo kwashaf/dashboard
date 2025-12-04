@@ -1880,30 +1880,36 @@ def main():
     st.subheader("Select Season, Competition, Player & Position on the Left")
 
     st.sidebar.header("Data Sources")
-    
+
     # --------------------------
-    # 1. Season selection
-    # --------------------------
-    season_choice = st.sidebar.selectbox(
-        "Season",
-        list(SEASON_MAP.keys()),
-        index=1,   # selects "2025/26"
-    )
-    season_fragment = SEASON_MAP[season_choice]
-    
-    # --------------------------
-    # 2. Competition selection
+    # 1. Competition selection (now first)
     # --------------------------
     competition_choice = st.sidebar.selectbox(
         "Competition",
         list(COMP_MAP.keys()),
         index=0,
     )
+
+    # --------------------------
+    # 2. Season auto-selection (locked)
+    # --------------------------
+    # Leagues that must use 2025
+    forced_2025 = ["Brasilerao", "League of Ireland", "Allsvenskan"]
+
+    if competition_choice in forced_2025:
+        season_choice = "2025"
+        st.sidebar.selectbox("Season", ["2025"], index=0, disabled=True)
+    else:
+        season_choice = "2025/26"
+        st.sidebar.selectbox("Season", ["2025/26"], index=0, disabled=True)
+
+    season_fragment = SEASON_MAP[season_choice]
+
+    # --------------------------
+    # 3. Build file paths using auto-selected season
+    # --------------------------
     league_prefix = COMP_MAP[competition_choice]
-    
-    # --------------------------
-    # 3. Build file paths
-    # --------------------------
+
     parquet_choice = f"{league_prefix}_{season_fragment}.parquet"
     excel_choice   = f"{league_prefix}_{season_fragment}_playerstats_by_position_group.xlsx"
 
