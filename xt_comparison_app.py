@@ -2231,9 +2231,9 @@ def main():
     #     "Shot Maps", "Creative Actions", "Metric Comparisons",
     #     "Defensive Actions", "Passes & Carries", "Player Similarity"]
     #)
-    tab2, tab4, tab3, tab1, tab8, tab6, tab9, tab5, tab7, tab10 = st.tabs(
-        ["Player Pizza", "Player Profiling", "Player Actions", "Pitch Impact",
-         "Defensive Actions", "Creative Actions", "Passes & Carries", "Shot Maps",
+    tab2, tab4, tab3, tab8, tab6, tab9, tab5, tab1, tab7, tab10 = st.tabs(
+        ["Player Pizza", "Player Profiling", "Player Actions", 
+         "Defensive Actions", "Creative Actions", "Passes & Carries", "Shot Maps", "Pitch Impact",
          "Metric Comparison", "Player Similarity"]
     )
     # Init session state
