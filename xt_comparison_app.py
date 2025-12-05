@@ -2095,7 +2095,10 @@ def main():
     
     # Aggregate extended stats per position
     pos_extended = (
-        player_stats[player_stats["player_name"] == playername]
+        player_stats[
+            (player_stats["player_name"] == playername) &
+            (player_stats["team_name"] == team_choice)
+        ]
         .groupby("position_group")
         .agg({
             "minutes_played": "sum",
