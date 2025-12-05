@@ -1642,6 +1642,7 @@ def create_player_actions_figure(
         max_density_idx_def = np.argmax(density_def)
         max_density_x_def = x_grid.ravel()[max_density_idx_def]
         max_density_y_def = y_grid.ravel()[max_density_idx_def]
+        radius = 15
 
         points_within_radius_def = points_def[
             ((points_def[:, 0] - max_density_x_def) ** 2 +
