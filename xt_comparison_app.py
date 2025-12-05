@@ -2267,16 +2267,17 @@ def main():
         st.session_state["active_tab"] = "Pitch Impact Map"
         st.header("Pitch Impact Map")
     
-        # Button must update session_state instead of triggering immediate render
-        if st.sidebar.button("Generate Visuals"):
-            st.session_state["generate_pitch_map"] = True
+        # Define the condition under which all required inputs exist
+        inputs_ready = (
+            matchdata is not None
+            and minute_log is not None
+            and position not in (None, "")
+            and playername not in (None, "")
+            and season_choice not in (None, "")
+        )
     
-        # Only generate + display inside this tab
-        if st.session_state.get("generate_pitch_map", False):
-    
-            # Prevent plot appearing in other tabs
-            if st.session_state["active_tab"] != "Pitch Impact Map":
-                st.stop()
+        # Only generate + display inside this tab when selections are ready
+        if inputs_ready and st.session_state["active_tab"] == "Pitch Impact Map":
     
             fig = plot_xt_comparison_for_player(
                 matchdata=matchdata,
@@ -2289,7 +2290,7 @@ def main():
             if fig is not None:
                 left, center, right = st.columns([1, 4, 1])
                 with center:
-                    st.image(fig_to_png_bytes(fig), width=500)
+                    st.image(fig_to_png_bytes(fig), width=600)
 
     # ================================================================
     # TAB 2 — Player Pizza
