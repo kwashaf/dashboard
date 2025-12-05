@@ -2140,7 +2140,13 @@ def main():
     # ---------- FORMAT AS STRINGS ----------
     pos_extended["Minutes"] = pos_extended["Minutes"].map(lambda x: f"{x:.1f}")
     pos_extended["xG"] = pos_extended["xG"].map(lambda x: f"{x:.3f}")
-    pos_extended["Goals"] = pos_extended["Goals"].map(lambda x: f"{int(x)}")
+    #pos_extended["Goals"] = pos_extended["Goals"].map(lambda x: f"{int(x)}")
+    pos_extended["Goals"] = (
+        pd.to_numeric(pos_extended["Goals"], errors="coerce")  # turns NaN into NaN
+          .fillna(0)                                           # replace NaN with 0 (or "" if you prefer)
+          .astype(int)                                         # safe now
+          .astype(str)
+    )
     pos_extended["xA"] = pos_extended["xA"].map(lambda x: f"{x:.3f}")
     pos_extended["Assists"] = pos_extended["Assists"].map(lambda x: f"{int(x)}")
     
