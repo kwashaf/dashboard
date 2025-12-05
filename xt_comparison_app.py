@@ -2290,7 +2290,7 @@ def main():
             if fig is not None:
                 left, center, right = st.columns([1, 4, 1])
                 with center:
-                    st.image(fig_to_png_bytes(fig), width=600)
+                    st.image(fig_to_png_bytes(fig), width=550)
 
     # ================================================================
     # TAB 2 — Player Pizza
