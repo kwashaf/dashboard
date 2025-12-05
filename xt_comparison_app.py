@@ -1879,8 +1879,8 @@ def create_creative_actions_figure(
     # ---------------------------------------------------------
     # LOGOS (exactly same placement as Player Actions)
     # ---------------------------------------------------------
-    add_image(teamimage, fig, left=0.57, bottom=-0.03, width=0.05, alpha=1)
-    add_image(wtaimaged, fig, left=0.433, bottom=-0.02175, width=0.06, alpha=1)
+    add_image(teamimage, fig, left=0.56, bottom=-0.05, width=0.06, alpha=1)
+    add_image(wtaimaged, fig, left=0.4, bottom=-0.04075, width=0.08, alpha=1)
 
     return fig
 # -----------------------------------------------------------------------------
