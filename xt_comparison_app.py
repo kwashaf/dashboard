@@ -2148,8 +2148,13 @@ def main():
           .astype(str)
     )
     pos_extended["xA"] = pos_extended["xA"].map(lambda x: f"{x:.3f}")
-    pos_extended["Assists"] = pos_extended["Assists"].map(lambda x: f"{int(x)}")
-    
+    #pos_extended["Assists"] = pos_extended["Assists"].map(lambda x: f"{int(x)}")
+    pos_extended["Assists"] = (
+        pd.to_numeric(pos_extended["Assists"], errors="coerce")  # turns NaN into NaN
+          .fillna(0)                                           # replace NaN with 0 (or "" if you prefer)
+          .astype(int)                                         # safe now
+          .astype(str)
+    )    
     pos_extended["Pass %"] = pos_extended["Pass %"].map(lambda x: f"{x*100:.2f}%")
     pos_extended["Aerial %"] = pos_extended["Aerial %"].map(lambda x: f"{x*100:.2f}%")
     pos_extended["Tackle %"] = pos_extended["Tackle %"].map(lambda x: f"{x*100:.2f}%")
