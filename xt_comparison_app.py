@@ -2312,11 +2312,39 @@ def main():
     # ================================================================
     # TAB 1 — Pitch Impact Map
     # ================================================================
+  #  with tab1:
+  #      st.session_state["active_tab"] = "Pitch Impact Map"
+  #      st.header("Pitch Impact Map")
+  #  
+        # Define the condition under which all required inputs exist
+  #      inputs_ready = (
+  #          matchdata is not None
+  #       and minute_log is not None
+  #          and position not in (None, "")
+  #          and playername not in (None, "")
+  #          and season_choice not in (None, "")
+  #      )
+    
+        # Only generate + display inside this tab when selections are ready
+   #     if inputs_ready and st.session_state["active_tab"] == "Pitch Impact Map":
+    
+   #         fig = plot_xt_comparison_for_player(
+   #             matchdata=matchdata,
+   #             minute_log=minute_log,
+   #             position=position,
+   #             playername=playername,
+   #             season=season_choice,
+   #         )
+    
+   #         if fig is not None:
+   #             left, center, right = st.columns([1, 4, 1])
+   #             with center:
+   #                 st.image(fig_to_png_bytes(fig), width=550)
+    
     with tab1:
         st.session_state["active_tab"] = "Pitch Impact Map"
         st.header("Pitch Impact Map")
     
-        # Define the condition under which all required inputs exist
         inputs_ready = (
             matchdata is not None
             and minute_log is not None
@@ -2325,7 +2353,6 @@ def main():
             and season_choice not in (None, "")
         )
     
-        # Only generate + display inside this tab when selections are ready
         if inputs_ready and st.session_state["active_tab"] == "Pitch Impact Map":
     
             fig = plot_xt_comparison_for_player(
@@ -2339,8 +2366,8 @@ def main():
             if fig is not None:
                 left, center, right = st.columns([1, 4, 1])
                 with center:
-                    st.image(fig_to_png_bytes(fig), width=550)
-
+                    st.pyplot(fig)      # 👈 Proper Streamlit rendering
+                plt.close(fig)           # 👈 VERY IMPORTANT
     # ================================================================
     # TAB 2 — Player Pizza
     # ================================================================
