@@ -1024,16 +1024,27 @@ def list_excel_files():
     ])
 
 
-@st.cache_data
+#@st.cache_data
+#def load_match_data(parquet_filename: str):
+#    url = build_raw_url(parquet_filename)
+#    try:
+#        df = pd.read_parquet(io.BytesIO(fetch_raw_file(url)))
+#        return df
+#    except Exception as e:
+#        st.error(f"Error reading match file")
+#        return pd.DataFrame()
+@st.cache_data(max_entries=1, ttl=600)
 def load_match_data(parquet_filename: str):
     url = build_raw_url(parquet_filename)
-    try:
-        df = pd.read_parquet(io.BytesIO(fetch_raw_file(url)))
-        return df
-    except Exception as e:
-        st.error(f"Error reading match file")
-        return pd.DataFrame()
 
+    try:
+        raw_bytes = fetch_raw_file(url)   # Download file bytes (cached separately if needed)
+        df = pd.read_parquet(io.BytesIO(raw_bytes))
+        return df
+
+    except Exception as e:
+        st.error(f"Error reading match file: {e}")
+        return pd.DataFrame()
 
 @st.cache_data
 def load_minute_log(excel_filename: str):
