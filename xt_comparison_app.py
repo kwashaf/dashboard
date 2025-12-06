@@ -71,6 +71,21 @@ COMP_MAP = {
     "MLS":            "USA1",
     "J-League":        "JAP1",
 }
+@st.cache_resource
+def load_team_badge(teamcode: str):
+    """Safely fetch and cache a team's badge image."""
+    badge_url = (
+        "https://omo.akamai.opta.net/image.php"
+        f"?h=www.scoresway.com&sport=football&entity=team&description=badges"
+        f"&dimensions=150&id={teamcode}"
+    )
+    try:
+        # Download the file in memory safely
+        with urlopen(badge_url) as resp:
+            data = resp.read()
+        return Image.open(io.BytesIO(data)).convert("RGBA")
+    except Exception:
+        return None
 # -----------------------------------------------------------------------------
 # POSITION NORMALISATION
 # -----------------------------------------------------------------------------
@@ -1420,25 +1435,35 @@ def build_player_pizza(
 
 
     # TEAM BADGE LOOKUP
+#    teamname = playerrow["team_name"]
+#    teamcode = None
+#    if not teamlog.empty:
+#        matchrow = teamlog.loc[teamlog["name"] == teamname]
+#        if not matchrow.empty:
+#            teamcode = matchrow["id"].iloc[0]
+
+#    teamimage = None
+#    if teamcode:
+#        badge_url = (
+#            "https://omo.akamai.opta.net/image.php"
+#            f"?h=www.scoresway.com&sport=football&entity=team&description=badges"
+#            f"&dimensions=150&id={teamcode}"
+#        )
+#        try:
+#            teamimage = Image.open(urlopen(badge_url))
+#        except:
+#            teamimage = None
+# TEAM BADGE LOOKUP
     teamname = playerrow["team_name"]
     teamcode = None
+    
     if not teamlog.empty:
         matchrow = teamlog.loc[teamlog["name"] == teamname]
         if not matchrow.empty:
             teamcode = matchrow["id"].iloc[0]
-
-    teamimage = None
-    if teamcode:
-        badge_url = (
-            "https://omo.akamai.opta.net/image.php"
-            f"?h=www.scoresway.com&sport=football&entity=team&description=badges"
-            f"&dimensions=150&id={teamcode}"
-        )
-        try:
-            teamimage = Image.open(urlopen(badge_url))
-        except:
-            teamimage = None
-
+    
+    # Use cached badge loader
+    teamimage = load_team_badge(str(teamcode)) if teamcode else None
     # -----------------------------------------------------------------
     # 6. Parameter display names
     # -----------------------------------------------------------------
