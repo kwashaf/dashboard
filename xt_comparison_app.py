@@ -385,12 +385,10 @@ def create_pass_and_carry_sonar(
             return
 
         df = data.copy()
-        ASPECT = 105 / 68   # ≈ 1.5441176
-        
+
         # Correct for rectangular pitch distortion
         df['hx'] = df['end_y'] - df['y']
-        df['vy'] = (df['end_x'] - df['x']) 
-        
+        df['vy'] = df['end_x'] - df['x']
         df['angle'] = (np.degrees(np.arctan2(df['vy'], df['hx'])) + 360) % 360
 
         df['row'] = pd.cut(df['x'], bins=x_bins, labels=False)
@@ -401,30 +399,40 @@ def create_pass_and_carry_sonar(
         for r in range(5):
             for c in range(5):
                 cell = df[(df['row'] == r) & (df['col'] == c)]
-                if not len(cell):
+                if len(cell) == 0:
                     continue
+
                 cx = (x_bins[r] + x_bins[r+1]) / 2
                 cy = (y_bins[c] + y_bins[c+1]) / 2
+
                 plot_sonar(ax, cx, cy, cell['angle'], max_radius=7)
 
         ax.set_title(title, color=TextColor)
 
     # ---------------------------
-    # 2. BUILD FIGURE
+    # 2. BUILD FIGURE — NOW MEMORY-SAFE
     # ---------------------------
-    pitch = VerticalPitch(pitch_type='opta', goal_type='box',
-                          pitch_color=PitchColor, line_color=PitchLineColor)
+    pitch = VerticalPitch(
+        pitch_type='opta',
+        goal_type='box',
+        pitch_color=PitchColor,
+        line_color=PitchLineColor
+    )
 
-    fig, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
-    fig.set_facecolor(BackgroundColor)
-    
+    # use safe_fig() wrapper
+    with safe_fig(figsize=(12, 9)) as (fig, _):
 
-    sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
-    sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
-    add_image(wtaimaged, fig, left=0.203, bottom=0.4535, width=0.1, alpha=0.25)
-    add_image(wtaimaged, fig, left=0.6975, bottom=0.4535, width=0.1, alpha=0.25)
+        # important — use pitch.draw() but assign fig manually
+        _, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
+        fig.set_facecolor(BackgroundColor)
 
-    return fig
+        sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
+        sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
+
+        add_image(wtaimaged, fig, left=0.203, bottom=0.4535, width=0.1, alpha=0.25)
+        add_image(wtaimaged, fig, left=0.6975, bottom=0.4535, width=0.1, alpha=0.25)
+
+        return fig
 
 def determine_def_zone(row):
     """
@@ -485,16 +493,18 @@ def create_defensive_actions_figure(
         (allevents['playerName'] == playername) &
         (allevents['team_name'] == team_choice)
     ].copy()
+
     extra_types = ['Ball recovery', 'Interception', 'Attempt Saved', 'Clearance']
     player_extra = matchdata.loc[
         (matchdata['playerName'] == playername) &
         (matchdata['team_name'] == team_choice) &
         (matchdata['typeId'].isin(extra_types)) &
-        (matchdata['x'] <= 50)    # defensive half only
+        (matchdata['x'] <= 50)
     ].copy()
-    
+
     player_extra["x"] = pd.to_numeric(player_extra["x"], errors="coerce")
     player_extra["y"] = pd.to_numeric(player_extra["y"], errors="coerce")
+
     # ---------------------------
     # 2. SUMMARY STATS
     # ---------------------------
@@ -508,171 +518,138 @@ def create_defensive_actions_figure(
         success=("is_success", "sum")
     ).reset_index()
 
-    # Fill missing zones
     all_z = pd.DataFrame({"zone": range(1, 7)})
 
     zone_summary_all = all_z.merge(zone_summary_all, on="zone", how="left").fillna(0)
     zone_summary_player = all_z.merge(zone_summary_player, on="zone", how="left").fillna(0)
 
-    zone_summary_all["rate"] = zone_summary_all["success"] / zone_summary_all["total"].replace(0, np.nan) * 100
-    zone_summary_player["rate"] = zone_summary_player["success"] / zone_summary_player["total"].replace(0, np.nan) * 100
+    zone_summary_all["rate"] = (
+        zone_summary_all["success"] /
+        zone_summary_all["total"].replace(0, np.nan) * 100
+    ).fillna(0)
 
-    zone_summary_all["rate"] = zone_summary_all["rate"].fillna(0)
-    zone_summary_player["rate"] = zone_summary_player["rate"].fillna(0)
-
-    # ---------------------------
-    # 3. DRAW FIGURE
-    # ---------------------------
-    fig, ax = plt.subplots(figsize=(15, 10))
-    fig.set_facecolor(BackgroundColor)
-
-    pitch = VerticalPitch(
-        pitch_type='opta',
-        pitch_color=PitchColor,
-        line_color=PitchLineColor
-    )
-    pitch.draw(ax=ax)
-
-    # Draw vertical band lines
-    band_lines = [78.9, 60, 40, 21.1]
-    for v in band_lines:
-        ax.axvline(v, ymin=0.185, ymax=0.50, color='blue', linestyle='--', alpha=0.3)
-
-    # ---------------------------------------------------------
-    # 4. TITLE (new, as requested)
-    # ---------------------------------------------------------
-    ax.set_title(
-        f"{playername} | Defensive Zone Success as {position}",
-        fontsize=14,
-        pad=10,
-        color=TextColor,
-    )
+    zone_summary_player["rate"] = (
+        zone_summary_player["success"] /
+        zone_summary_player["total"].replace(0, np.nan) * 100
+    ).fillna(0)
 
     # ---------------------------
-    # 4. PLACE TEXT FOR ZONES
+    # 3. DRAW FIGURE — MEMORY SAFE
     # ---------------------------
+    with safe_fig(figsize=(15, 10)) as (fig, ax):
 
+        fig.set_facecolor(BackgroundColor)
 
-    zone_centers = {2: 89, 3: 70, 4: 50, 5: 30, 6: 11}
-    
-    for zone in range(2, 7):
-        x = zone_centers[zone]
-    
-        league_rate = zone_summary_all.loc[zone_summary_all.zone == zone, "rate"].iloc[0]
-        player_rate = zone_summary_player.loc[zone_summary_player.zone == zone, "rate"].iloc[0]
-        player_total = zone_summary_player.loc[zone_summary_player.zone == zone, "total"].iloc[0]
-    
-        # league average
-        ax.text(x, 53.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
-    
-        # --------------------------
-        # N/A LOGIC (no actions)
-        # --------------------------
-        if player_total == 0:
+        pitch = VerticalPitch(
+            pitch_type='opta',
+            pitch_color=PitchColor,
+            line_color=PitchLineColor
+        )
+        pitch.draw(ax=ax)
+
+        # Draw defensive band lines
+        band_lines = [78.9, 60, 40, 21.1]
+        for v in band_lines:
+            ax.axvline(v, ymin=0.185, ymax=0.50, color='blue', linestyle='--', alpha=0.3)
+
+        # Title
+        ax.set_title(
+            f"{playername} | Defensive Zone Success as {position}",
+            fontsize=14,
+            pad=10,
+            color=TextColor,
+        )
+
+        # ---------------------------
+        # 4. ZONE LABELS
+        # ---------------------------
+        zone_centers = {2: 89, 3: 70, 4: 50, 5: 30, 6: 11}
+
+        for zone in range(2, 7):
+            x = zone_centers[zone]
+
+            league_rate = zone_summary_all.loc[zone_summary_all.zone == zone, "rate"].iloc[0]
+            player_rate = zone_summary_player.loc[zone_summary_player.zone == zone, "rate"].iloc[0]
+            player_total = zone_summary_player.loc[zone_summary_player.zone == zone, "total"].iloc[0]
+
+            ax.text(x, 53.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
+
+            if player_total == 0:
+                ax.text(x, 51, "N/A", fontsize=10, weight='bold', ha='center', color='black')
+                continue
+
+            if player_rate > league_rate:
+                rate_color = "green"
+            elif player_rate < league_rate:
+                rate_color = "red"
+            else:
+                rate_color = "black"
+
             ax.text(
                 x, 51,
-                "N/A",
+                f"{player_rate:.1f}%",
                 fontsize=10,
                 weight='bold',
                 ha='center',
-                color='black'
+                color=rate_color
             )
-            continue
-    
-        # --------------------------
-        # CONDITIONAL COLOUR for player's %
-        # --------------------------
-        if player_rate > league_rate:
-            rate_color = "green"
-        elif player_rate < league_rate:
-            rate_color = "red"
+
+        # ---------------------------
+        # Penalty box (zone 1)
+        # ---------------------------
+        league_rate = zone_summary_all.loc[zone_summary_all.zone == 1, "rate"].iloc[0]
+        player_rate = zone_summary_player.loc[zone_summary_player.zone == 1, "rate"].iloc[0]
+        player_total = zone_summary_player.loc[zone_summary_player.zone == 1, "total"].iloc[0]
+
+        ax.text(50, 15.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
+
+        if player_total == 0:
+            ax.text(50, 13, "N/A", fontsize=10, weight='bold', ha='center')
         else:
-            rate_color = "black"
-    
-        ax.text(
-            x, 51,
-            f"{player_rate:.1f}%",
-            fontsize=10,
-            weight='bold',
-            ha='center',
-            color=rate_color
-        )
-    
-    # ---------------------------
-    # Penalty box (zone 1)
-    # ---------------------------
-    league_rate = zone_summary_all.loc[zone_summary_all.zone == 1, "rate"].iloc[0]
-    player_rate = zone_summary_player.loc[zone_summary_player.zone == 1, "rate"].iloc[0]
-    player_total = zone_summary_player.loc[zone_summary_player.zone == 1, "total"].iloc[0]
-    
-    ax.text(50, 15.5, f"({league_rate:.1f}%)", fontsize=8, ha='center')
-    
-    if player_total == 0:
-        ax.text(
-            50, 13,
-            "N/A",
-            fontsize=10,
-            weight='bold',
-            ha='center',
-            color='black'
-        )
-    else:
-        if player_rate > league_rate:
-            rate_color = "green"
-        elif player_rate < league_rate:
-            rate_color = "red"
-        else:
-            rate_color = "black"
-    
-        ax.text(
-            50, 13,
-            f"{player_rate:.1f}%",
-            fontsize=10,
-            weight='bold',
-            ha='center',
-            color=rate_color
-        )
-    # ---------------------------
-    # 5. TITLE + NOTES
-    # ---------------------------
-    ax.text(50,61, "Orange circles show other defensive actions that aren't duels", fontsize=8, color='black', ha='center', va='center')
-    ax.text(50,64, 'Zones are split into 5 zones across the pitch, and penalty box', fontsize=8, color='black', ha='center', va='center')
-    ax.text(50,67, 'Data from Opta - number in brackets is league average for that playing position', fontsize=8, color='black', ha='center', va='center')
-    # ---------------------------
-    # 6. SCATTER EVENTS
-    # ---------------------------
-    markers = {"Tackle": ">", "Challenge": ">", "Aerial": "s"}
+            if player_rate > league_rate:
+                rate_color = "green"
+            elif player_rate < league_rate:
+                rate_color = "red"
+            else:
+                rate_color = "black"
 
-    for _, ev in playerevents.iterrows():
-        marker = markers.get(ev['typeId'], 'o')
-        color = 'green' if ev['is_success'] else 'red'
-        ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.45)
-    for _, ev in player_extra.iterrows():
-        ax.scatter(
-            ev['y'], ev['x'],
-            s=25,
-            color='orange',
-            marker='o',
-            edgecolors='none',
-            alpha=0.3
+            ax.text(50, 13, f"{player_rate:.1f}%", fontsize=10, weight='bold', ha='center', color=rate_color)
+
+        # Notes
+        ax.text(50, 61, "Orange circles = Non-duel defensive actions", fontsize=8, ha='center')
+        ax.text(50, 64, "Zones are split into 5 strips + penalty box", fontsize=8, ha='center')
+        ax.text(50, 67, "League average shown in brackets", fontsize=8, ha='center')
+
+        # Defensive Events
+        markers = {"Tackle": ">", "Challenge": ">", "Aerial": "s"}
+
+        for _, ev in playerevents.iterrows():
+            marker = markers.get(ev['typeId'], 'o')
+            color = 'green' if ev['is_success'] else 'red'
+            ax.scatter(ev['y'], ev['x'], marker=marker, color=color, s=25, alpha=0.45)
+
+        for _, ev in player_extra.iterrows():
+            ax.scatter(ev['y'], ev['x'], s=25, color='orange', marker='o', edgecolors='none', alpha=0.3)
+
+        # Legend
+        legend_elements = [
+            Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle'),
+            Line2D([0], [0], marker='s', color='none', markerfacecolor='green', label='Aerial')
+        ]
+        ax.legend(
+            handles=legend_elements,
+            fontsize=6,
+            loc='center left',
+            bbox_to_anchor=(0.79, 0.58),
+            frameon=False
         )
-    legend_elements = [
-        Line2D([0], [0], marker='>', color='none', markerfacecolor='green', label='Tackle'),
-        Line2D([0], [0], marker='s', color='none', markerfacecolor='green', label='Aerial')
-    ]
-    legend = ax.legend(
-        handles=legend_elements,
-        fontsize=6,
-        loc='center left',
-        bbox_to_anchor=(0.79, 0.58),   # adjust to sit right of WTA logo
-        frameon=False
-    )
 
-    add_image(teamimage, fig, left=0.3625, bottom=0.75, width=0.05)
-    add_image(teamimage, fig, left=0.6125, bottom=0.75, width=0.05)
-    add_image(wtaimaged, fig, left=0.4825, bottom=0.645, width=0.06)
+        # Logos
+        add_image(teamimage, fig, left=0.3625, bottom=0.75, width=0.05)
+        add_image(teamimage, fig, left=0.6125, bottom=0.75, width=0.05)
+        add_image(wtaimaged, fig, left=0.4825, bottom=0.645, width=0.06)
 
-    return fig
+        return fig
 
 # -----------------------------------------------------------------------------
 # PLAYER PROFILING CONFIG
