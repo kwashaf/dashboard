@@ -2366,8 +2366,8 @@ def main():
             if fig is not None:
                 left, center, right = st.columns([1, 4, 1])
                 with center:
-                    st.pyplot(fig)      # 👈 Proper Streamlit rendering
-                plt.close(fig)           # 👈 VERY IMPORTANT
+                    st.image(fig_to_png_bytes(fig), width=550)   # keep your width
+                plt.close(fig)  # absolutely required to prevent crashes
     # ================================================================
     # TAB 2 — Player Pizza
     # ================================================================
