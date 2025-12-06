@@ -1046,18 +1046,29 @@ def load_match_data(parquet_filename: str):
         st.error(f"Error reading match file: {e}")
         return pd.DataFrame()
 
-@st.cache_data
+#@st.cache_data
+#def load_minute_log(excel_filename: str):
+#    url = build_raw_url(excel_filename)
+#    try:
+#        # Load all columns – we need more than just minutes now
+#        df = pd.read_excel(io.BytesIO(fetch_raw_file(url)))
+#        return df
+#    except Exception as e:
+#        st.error(f"Error reading player file")
+#        return pd.DataFrame()
+
+@st.cache_data(max_entries=1, ttl=600)
 def load_minute_log(excel_filename: str):
     url = build_raw_url(excel_filename)
+
     try:
-        # Load all columns – we need more than just minutes now
-        df = pd.read_excel(io.BytesIO(fetch_raw_file(url)))
+        raw_bytes = fetch_raw_file(url)
+        df = pd.read_excel(io.BytesIO(raw_bytes))
         return df
+
     except Exception as e:
-        st.error(f"Error reading player file")
+        st.error(f"Error reading player file: {e}")
         return pd.DataFrame()
-
-
 # -----------------------------------------------------------------------------
 # PLOTTING FUNCTION
 # -----------------------------------------------------------------------------
@@ -3099,39 +3110,70 @@ def main():
         # --------------------------------------------
         # 2. Load extra league data files
         # --------------------------------------------
-        @st.cache_data
+       # @st.cache_data
+      #  def load_league_file(mapped_name: str) -> pd.DataFrame | None:
+     #       files = list_excel_files()
+    #        for f in files:
+   #             if mapped_name.lower() in f.lower():
+  #                  # NOTE: these files are already local / accessible in your setup
+ #                   df = pd.read_excel(f)
+#
+              #      position_replacements = {
+             #           "LMW": "LW",
+            #            "RMW": "RW",
+           #         }
+
+                    #pos_col = None
+                   # for c in df.columns:
+                  #      if c.lower() in ["position_group", "position", "pos"]:
+                 #           pos_col = c
+                #            break
+
+               #     if pos_col is not None:
+              #          df[pos_col] = df[pos_col].replace(position_replacements)
+
+             #       return df
+
+            #return None
+
+#        extra_frames = []
+#        for lg in selected_extra_leagues:
+#            mapped = COMPARISON_MAP[lg]
+#            df_extra = load_league_file(mapped)
+#            if df_extra is not None:
+#                extra_frames.append(df_extra)
+        @st.cache_data(max_entries=1, ttl=600)
         def load_league_file(mapped_name: str) -> pd.DataFrame | None:
             files = list_excel_files()
+        
             for f in files:
                 if mapped_name.lower() in f.lower():
-                    # NOTE: these files are already local / accessible in your setup
-                    df = pd.read_excel(f)
-
-                    position_replacements = {
-                        "LMW": "LW",
-                        "RMW": "RW",
-                    }
-
-                    pos_col = None
-                    for c in df.columns:
-                        if c.lower() in ["position_group", "position", "pos"]:
-                            pos_col = c
-                            break
-
-                    if pos_col is not None:
-                        df[pos_col] = df[pos_col].replace(position_replacements)
-
-                    return df
-
+        
+                    try:
+                        df = pd.read_excel(f)
+        
+                        # Normalise positions across leagues
+                        position_replacements = {
+                            "LMW": "LW",
+                            "RMW": "RW",
+                        }
+        
+                        # Try to detect the correct position column
+                        pos_col = next(
+                            (c for c in df.columns if c.lower() in ["position_group", "position", "pos"]),
+                            None
+                        )
+        
+                        if pos_col:
+                            df[pos_col] = df[pos_col].replace(position_replacements)
+        
+                        return df
+        
+                    except Exception as e:
+                        st.error(f"Error reading league file: {e}")
+                        return None
+        
             return None
-
-        extra_frames = []
-        for lg in selected_extra_leagues:
-            mapped = COMPARISON_MAP[lg]
-            df_extra = load_league_file(mapped)
-            if df_extra is not None:
-                extra_frames.append(df_extra)
-
         # --------------------------------------------
         # 3. Combine all datasets
         # --------------------------------------------
