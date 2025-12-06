@@ -122,6 +122,16 @@ def normalize_position(pos: str) -> str:
 # -----------------------------------------------------------------------------
 # HELPERS
 # -----------------------------------------------------------------------------
+from contextlib import contextmanager
+
+@contextmanager
+def safe_fig(*args, **kwargs):
+    fig, ax = plt.subplots(*args, **kwargs)
+    try:
+        yield fig, ax
+    finally:
+        plt.close(fig)
+
 def build_raw_url(filename: str) -> str:
     """Build raw GitHub URL for a given file in the repo."""
     prefix = "" if DATA_DIR == "" else (DATA_DIR.rstrip("/") + "/")
