@@ -2393,7 +2393,8 @@ def main():
                 left, center, right = st.columns([1, 4, 1])
                 with center:
                     img_bytes = fig_to_png_bytes(pizza_fig)
-                    st.image(img_bytes, width=700)
+                    st.image(img_bytes, width=700)   # ✔ keep your width
+                plt.close(pizza_fig)                 # 🔥 required to prevent crashes
 
 # ================================================================
 # TAB 3 — Player Actions
@@ -2482,6 +2483,7 @@ def main():
             left, center, right = st.columns([1, 3, 1])
             with center:
                 st.image(fig_to_png_bytes(fig), width=1600)
+                plt.close(fig)
     # ================================================================
     # TAB 4 — Player Profiling
     # ================================================================
@@ -2618,6 +2620,7 @@ def main():
         left,center,right = st.columns([1,3,1])
         with center:
             st.image(fig_to_png_bytes(fig), width=600)
+            plt.close(fig)
     # ================================================================
     # TAB 5 — Shot Maps
     # ================================================================
@@ -2748,6 +2751,7 @@ def main():
             ax.text(99, 64,   f'Goal Conversion: {goal_conversion_rate}%', ha='left', fontsize=9, color='black')
     
             st.image(fig_to_png_bytes(fig), width=750)
+            plt.close(fig)
     
     
     
@@ -2817,6 +2821,7 @@ def main():
             add_image(teamimage, figGM, left=0.32, bottom=0.58, width=0.125, alpha=1)
             add_image(wtaimaged, figGM, left=0.58, bottom=0.60, width=0.125, alpha=1)
             st.pyplot(figGM)
+            plt.close(figGM)  
 
 # ================================================================
 # TAB6 — Creative Actions
@@ -2918,6 +2923,8 @@ def main():
         left, center, right = st.columns([1, 3, 1])
         with center:
             st.image(fig_to_png_bytes(fig), width=1600)
+            plt.close(fig)
+
     # ================================================================
     # TAB 7 — Metric Scatter (FINAL POLISHED & CORRECTED VERSION)
     # ================================================================
@@ -3105,7 +3112,8 @@ def main():
         )
     
         st.image(fig_to_png_bytes(fig), width=600)
-
+        plt.close(fig)
+        
     with tab9:
         st.subheader("Passing & Carrying Sonars")
     
@@ -3121,6 +3129,7 @@ def main():
         )
 
         st.image(fig_to_png_bytes(fig), width=1100)
+        plt.close(fig)
 
 
     # TAB 10 — PLAYER SIMILARITY ENGINE (TOP/BOTTOM METRICS VERSION)
