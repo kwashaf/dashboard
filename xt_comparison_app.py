@@ -37,12 +37,13 @@ TextColor = "White"
     # -----------------------------------------------------------------
     # 5. Load images (WTA + team badge)
     # -----------------------------------------------------------------
-wtaimaged = Image.open(
-    requests.get(
-        "https://github.com/WTAnalysis/dashboard/raw/main/wtatransnew.png",
-        stream=True,
-        ).raw
-)
+@st.cache_resource
+def load_wta_image():
+    url = "https://github.com/WTAnalysis/dashboard/raw/main/wtatransnew.png"
+    response = requests.get(url)
+    return Image.open(BytesIO(response.content))
+
+wtaimaged = load_wta_image()
 SEASON_MAP = {
     "2025":    "2025",
     "2025/26": "2526",
