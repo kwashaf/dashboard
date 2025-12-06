@@ -132,6 +132,14 @@ def safe_fig(*args, **kwargs):
     finally:
         plt.close(fig)
 
+@contextmanager
+def close_after(fig):
+    """Context manager to auto-close an existing Matplotlib figure."""
+    try:
+        yield fig
+    finally:
+        plt.close(fig)
+
 def build_raw_url(filename: str) -> str:
     """Build raw GitHub URL for a given file in the repo."""
     prefix = "" if DATA_DIR == "" else (DATA_DIR.rstrip("/") + "/")
@@ -782,17 +790,16 @@ def plot_profile_polygon_with_ball(
     title_color="white",
     title_pad=28,
 
-    # NEW — OVERLAY IMAGE OPTIONS
-    overlay_img=None,         # Image to place in centre
-    overlay_size=0.28,        # Width/height in figure coordinates (0–1)
-    overlay_alpha=0.25,       # Transparency to apply
-    overlay_center=True,      # Always centre unless overridden
-    overlay_left=None,        # If overlay_center=False, use manual coords
+    overlay_img=None,
+    overlay_size=0.28,
+    overlay_alpha=0.25,
+    overlay_center=True,
+    overlay_left=None,
     overlay_bottom=None,
 ):
     """
-    Automatically draws a diamond (4 profiles) or pentagon (5 profiles)
-    depending on number of labels/scores.
+    Radar/diamond polygon figure with optional overlay image.
+    MEMORY SAFE: wrapped in safe_fig so figures close automatically.
     """
 
     n = len(labels)
@@ -803,153 +810,150 @@ def plot_profile_polygon_with_ball(
 
     # -------- SHAPE DEFINITION --------
     if n == 5:
-        # Pentagon (top → clockwise)
         angles = np.deg2rad(np.linspace(90, 90 - 360, 5, endpoint=False))
         base_pts = np.column_stack([np.cos(angles), np.sin(angles)])
-
-    elif n == 4:
-        # Diamond (top → right → bottom → left)
+    else:
         base_pts = np.array([
-            [0,  1],   # top
-            [1,  0],   # right
-            [0, -1],   # bottom
-            [-1, 0],   # left
+            [ 0,  1],  # top
+            [ 1,  0],  # right
+            [ 0, -1],  # bottom
+            [-1,  0],  # left
         ], dtype=float)
 
-    # -------- FIGURE --------
-    fig, ax = plt.subplots(figsize=(6, 6))
-    fig.patch.set_facecolor(fig_bg)
-    ax.set_facecolor(fig_bg)
+    # ---------------------------
+    # MEMORY-SAFE FIGURE CREATION
+    # ---------------------------
+    with safe_fig(figsize=(6, 6)) as (fig, ax):
 
-    # Fill inside
-    ax.fill(base_pts[:,0], base_pts[:,1], color=poly_fill, zorder=0)
+        fig.patch.set_facecolor(fig_bg)
+        ax.set_facecolor(fig_bg)
 
-    # -------- GRID --------
-    for lv in sorted(levels):
-        f = lv / 100.0
-        ring = base_pts * f
-        ring = np.vstack([ring, ring[0]])
-        ax.plot(ring[:,0], ring[:,1], color=grid_color, alpha=grid_alpha, zorder=1)
+        # Fill background shape
+        ax.fill(base_pts[:,0], base_pts[:,1], color=poly_fill, zorder=0)
 
-    # Spokes
-    for x, y in base_pts:
-        ax.plot([0, x], [0, y], color=grid_color, alpha=0.25, zorder=1)
+        # -------- GRID --------
+        for lv in sorted(levels):
+            f = lv / 100.0
+            ring = base_pts * f
+            ring = np.vstack([ring, ring[0]])
+            ax.plot(ring[:,0], ring[:,1], color=grid_color, alpha=grid_alpha, zorder=1)
 
-    # Outer boundary
-    outer = np.vstack([base_pts, base_pts[0]])
-    ax.plot(outer[:,0], outer[:,1], linewidth=2, color=grid_color, alpha=0.9, zorder=2)
+        # Spokes
+        for x, y in base_pts:
+            ax.plot([0, x], [0, y], color=grid_color, alpha=0.25, zorder=1)
 
-    # -------- SCORE POLYGON --------
-    poly_pts = base_pts * scores_arr[:, None]
-    poly = np.vstack([poly_pts, poly_pts[0]])
+        # Outer boundary
+        outer = np.vstack([base_pts, base_pts[0]])
+        ax.plot(outer[:,0], outer[:,1], linewidth=2, color=grid_color, alpha=0.9, zorder=2)
 
-    ax.fill(poly[:,0], poly[:,1], color=polygon_color, alpha=polygon_alpha, zorder=3)
-    ax.plot(poly[:,0], poly[:,1], linewidth=2, color=polygon_color, alpha=1.0, zorder=3)
+        # -------- SCORE POLYGON --------
+        poly_pts = base_pts * scores_arr[:, None]
+        poly = np.vstack([poly_pts, poly_pts[0]])
 
-    # -------- CENTROID / FOOTBALL --------
-    w = np.nan_to_num(scores_arr, nan=0.0)
+        ax.fill(poly[:,0], poly[:,1], color=polygon_color, alpha=polygon_alpha, zorder=3)
+        ax.plot(poly[:,0], poly[:,1], linewidth=2, color=polygon_color, zorder=3)
 
-    if centroid_emphasis != 1.0:
-        w = w ** centroid_emphasis
+        # -------- CENTROID / BALL --------
+        w = np.nan_to_num(scores_arr, nan=0.0)
+        if centroid_emphasis != 1.0:
+            w = w ** centroid_emphasis
 
-    if w.sum() > 0:
-        w /= w.sum()
-        cx, cy = (w[:, None] * poly_pts).sum(axis=0)
-    else:
-        cx, cy = 0.0, 0.0
+        if w.sum() > 0:
+            w /= w.sum()
+            cx, cy = (w[:, None] * poly_pts).sum(axis=0)
+        else:
+            cx, cy = 0.0, 0.0
 
-    if ball_img is not None:
+        # Add ball or dot
         try:
-            imagebox = OffsetImage(ball_img, zoom=football_zoom)
-            ab = AnnotationBbox(imagebox, (cx, cy), frameon=False, zorder=5)
-            ax.add_artist(ab)
+            if ball_img is not None:
+                imagebox = OffsetImage(ball_img, zoom=football_zoom)
+                ab = AnnotationBbox(imagebox, (cx, cy), frameon=False, zorder=5)
+                ax.add_artist(ab)
+            else:
+                ax.plot(cx, cy, "o", color="white", markersize=12, zorder=5)
         except:
             ax.plot(cx, cy, "o", color="white", markersize=12, zorder=5)
-    else:
-        ax.plot(cx, cy, "o", color="white", markersize=12, zorder=5)
 
-    # -------- LABELS --------
-    label_offset = 1.12
-    for (x, y), label, score in zip(base_pts, labels, scores):
-        ha = "center"
-        va = "center"
+        # -------- LABELS --------
+        label_offset = 1.12
+        for (x, y), label, score in zip(base_pts, labels, scores):
 
-        if n == 4:
-            if (x, y) == (0, 1):      # top
-                va = "bottom"
-            elif (x, y) == (1, 0):    # right
-                ha = "left"
-            elif (x, y) == (0, -1):   # bottom
-                va = "top"
-            elif (x, y) == (-1, 0):   # left
-                ha = "right"
-        else:
-            if abs(y) < 0.15:
-                ha = "left" if x > 0 else "right"
-            elif y > 0:
-                va = "bottom"
+            ha = "center"
+            va = "center"
+
+            if n == 4:
+                if (x, y) == (0, 1): va = "bottom"
+                elif (x, y) == (1, 0): ha = "left"
+                elif (x, y) == (0, -1): va = "top"
+                elif (x, y) == (-1, 0): ha = "right"
             else:
-                va = "top"
+                if abs(y) < 0.15:
+                    ha = "left" if x > 0 else "right"
+                elif y > 0:
+                    va = "bottom"
+                else:
+                    va = "top"
 
-        ax.text(
-            x * label_offset,
-            y * label_offset,
-            f"{label}\n({score:.1f})",
-            ha=ha,
-            va=va,
-            color=label_color,
+            ax.text(
+                x * label_offset,
+                y * label_offset,
+                f"{label}\n({score:.1f})",
+                ha=ha,
+                va=va,
+                color=label_color,
+            )
+
+        # -------- TITLE --------
+        ax.set_title(
+            f"{player_name} – Position Profile ({position})",
+            pad=title_pad,
+            color=title_color,
+            size=18,
         )
 
-    # -------- TITLE --------
-    ax.set_title(
-        f"{player_name} – Position Profile ({position})",
-        pad=title_pad,
-        color=title_color,
-        size=18,
-    )
+        ax.set_xlim(-1.3, 1.3)
+        ax.set_ylim(-1.3, 1.3)
+        ax.set_aspect("equal")
+        ax.axis("off")
 
-    ax.set_xlim(-1.3, 1.3)
-    ax.set_ylim(-1.3, 1.3)
-    ax.set_aspect("equal")
-    ax.axis("off")
+        # -------- CENTER OVERLAY --------
+        if overlay_img is not None:
+            try:
+                arr = overlay_img.copy()
 
-    # -------- NEW: CENTERED OVERLAY IMAGE (RELIABLE METHOD) --------
-    if overlay_img is not None:
-        try:
-            arr = overlay_img.copy()
-    
-            # Apply transparency
-            if overlay_alpha < 1:
-                arr = arr.astype(float) / 255.0
-                arr[..., :3] *= overlay_alpha
-                arr = (arr * 255).astype("uint8")
-    
-            # Determine image bounds in axis coordinates
-            size = overlay_size      # overlay_size = fraction of axis width/height
-            left = 0.5 - size / 2
-            right = 0.5 + size / 2
-            bottom = 0.5 - size / 2
-            top = 0.5 + size / 2
-    
-            ax.imshow(
-                arr,
-                extent=[left, right, bottom, top],   # center overlay
-                zorder=4,                          # behind polygon (3), above grid (1)
-                transform=ax.transAxes,              # THIS IS THE SECRET SAUCE
-                aspect='equal',
-            )
-    
-        except Exception as e:
-            print("Overlay image failed:", e)
-    fig.text(
-        0.5, 0.1,
-        "Created by @WT_Analysis — Data from Opta",
-        ha="center",
-        va="center",
-        fontsize=8,
-        color=TextColor
-    )
-    return fig
+                if overlay_alpha < 1:
+                    arr = arr.astype(float) / 255
+                    arr[..., :3] *= overlay_alpha
+                    arr = (arr * 255).astype("uint8")
+
+                size = overlay_size
+                left = 0.5 - size / 2
+                right = 0.5 + size / 2
+                bottom = 0.5 - size / 2
+                top = 0.5 + size / 2
+
+                ax.imshow(
+                    arr,
+                    extent=[left, right, bottom, top],
+                    zorder=4,
+                    transform=ax.transAxes,
+                    aspect="equal"
+                )
+
+            except Exception as e:
+                print("Overlay image failed:", e)
+
+        fig.text(
+            0.5, 0.1,
+            "Created by @WT_Analysis — Data from Opta",
+            ha="center",
+            va="center",
+            fontsize=8,
+            color=title_color,
+        )
+
+        return fig
 
 TEAMLOG_FILE = "teamlog.csv"
 
@@ -1082,6 +1086,9 @@ def plot_xt_comparison_for_player(
     season: str,
 ):
 
+    # ---------------------------
+    # PRE-PROCESSING (unchanged)
+    # ---------------------------
     positiondata = matchdata.loc[matchdata["playing_position"] == position].copy()
     bad_types = ["position_change", "goal_conceded", "clean_sheet"]
     if "typeId" in positiondata.columns:
@@ -1093,24 +1100,8 @@ def plot_xt_comparison_for_player(
         st.error(f"No data found for position '{position}' after filtering.")
         return None
 
-  #  with st.expander("Debug: sample of filtered position data", expanded=False):
-  #      debug_cols = [
-  #          col
-  #          for col in [
-  #              "playerName",
-  #              "playing_position",
-  #              "typeId",
-  #              "x",
-  #              "y",
-  #              "xT_value",
-  #              "throwin",
-  #          ]
-  #          if col in positiondata.columns
-  #      ]
-  #      st.dataframe(positiondata[debug_cols].head(50))
-
-    positiondata["x"] = positiondata["x"].clip(lower=0, upper=100)
-    positiondata["y"] = positiondata["y"].clip(lower=0, upper=100)
+    positiondata["x"] = positiondata["x"].clip(0, 100)
+    positiondata["y"] = positiondata["y"].clip(0, 100)
 
     x_bins = 10
     y_bins = 7
@@ -1118,66 +1109,34 @@ def plot_xt_comparison_for_player(
     x_edges = np.linspace(0, 100, x_bins + 1)
     y_edges = np.linspace(0, 100, y_bins + 1)
 
-    x_bin = np.digitize(positiondata["x"], x_edges, right=False)
-    y_bin = np.digitize(positiondata["y"], y_edges, right=False)
-
-    x_bin = np.clip(x_bin, 1, x_bins)
-    y_bin = np.clip(y_bin, 1, y_bins)
+    x_bin = np.clip(np.digitize(positiondata["x"], x_edges), 1, x_bins)
+    y_bin = np.clip(np.digitize(positiondata["y"], y_edges), 1, y_bins)
 
     y_bin = (y_bins + 1) - y_bin
-
     positiondata["pitch_bin"] = (x_bin - 1) * y_bins + y_bin
-# --- DEBUG: Show all events for this player in bin 64 ---
-#    with st.expander("Debug: Events for player in bin 64", expanded=False):
-#    
-#        # Filter only this player's events AND the selected position
-#        player_events = positiondata[
-#            (positiondata["playerName"] == playername) &
-#            (positiondata["pitch_bin"] == 64)
-#        ]
-#    
-#        if player_events.empty:
-#            st.write(f"No events found for {playername} in bin 64.")
-#        else:
-#            st.write(f"Total events for {playername} in bin 64: {len(player_events)}")
-#            st.dataframe(
-#                player_events[
-#                    [
-#                        "playerName",
-#                        "playing_position",
-#                        "typeId",
-#                        "x",
-#                        "y",
-#                        "xT_value",
-#                        "pitch_bin"
-#                    ]
-#                ],
-#                use_container_width=True,
-#            )
+
     drop_types = ["Player off", "Player on", "Corner Awarded", "Card"]
     if "typeId" in positiondata.columns:
         positiondata = positiondata.loc[~positiondata["typeId"].isin(drop_types)]
 
     xT_summary = (
-        positiondata.groupby(["playerName", "pitch_bin"], as_index=False)["xT_value"]
-        .sum()
+        positiondata.groupby(["playerName", "pitch_bin"], as_index=False)["xT_value"].sum()
     )
 
     xT_merged = pd.merge(
-        xT_summary,
-        minute_log,
+        xT_summary, minute_log,
         how="left",
         left_on="playerName",
-        right_on="player_name",
+        right_on="player_name"
     )
 
     xT_merged["xT_value_per_90"] = np.where(
         xT_merged["minutes_played"] > 0,
-        (xT_merged["xT_value"] / xT_merged["minutes_played"]) * 90,
-        np.nan,
+        xT_merged["xT_value"] / xT_merged["minutes_played"] * 90,
+        np.nan
     )
-    xT_merged = xT_merged.drop(columns="player_name")
-    xT_merged = xT_merged.dropna(subset=["xT_value_per_90"])
+
+    xT_merged = xT_merged.drop(columns="player_name").dropna(subset=["xT_value_per_90"])
 
     avg_bin_xt = (
         xT_merged.groupby("pitch_bin", as_index=False)["xT_value_per_90"]
@@ -1185,12 +1144,7 @@ def plot_xt_comparison_for_player(
         .rename(columns={"xT_value_per_90": "avg_xT_value_per_90"})
     )
 
-    xT_compared = pd.merge(
-        xT_merged,
-        avg_bin_xt,
-        on="pitch_bin",
-        how="left",
-    )
+    xT_compared = pd.merge(xT_merged, avg_bin_xt, on="pitch_bin", how="left")
     xT_compared["xT_value_compared"] = (
         xT_compared["xT_value_per_90"] - xT_compared["avg_xT_value_per_90"]
     )
@@ -1201,74 +1155,70 @@ def plot_xt_comparison_for_player(
         st.error(f"No data found for player '{playername}' at this position.")
         return None
 
+    # Fill missing bins
     all_bins = pd.DataFrame({"pitch_bin": range(1, 71)})
     playertest = pd.merge(all_bins, playertest, on="pitch_bin", how="left")
 
-    first_name = playername
-    if playertest["playerName"].notna().any():
-        first_name = playertest["playerName"].dropna().unique()[0]
+    first_name = (
+        playertest["playerName"].dropna().unique()[0]
+        if playertest["playerName"].notna().any()
+        else playername
+    )
 
     playertest["playerName"] = playertest["playerName"].fillna(first_name)
     playertest["xT_value_compared"] = playertest["xT_value_compared"].fillna(0)
-    #with st.expander("Debug: Full player bin table (all 70 bins)", expanded=True):
-    #    debug_df = playertest[[
-    #        "pitch_bin",
-    #        "playerName",
-    #        "xT_value_per_90",
-    #        "avg_xT_value_per_90",
-    #        "xT_value_compared"
-    #    ]].copy().sort_values("pitch_bin")
-    #    st.dataframe(debug_df, use_container_width=True)
-    #with st.expander("Debug: xT_value_compared distribution", expanded=False):
-    #    st.write(playertest["xT_value_compared"].describe())
 
     colors = ["#d7191c", "#ffffff", "#1a9641"]
-    cmap = mcolors.LinearSegmentedColormap.from_list(
-        "custom_red_white_green", colors, N=256
-    )
+    cmap = mcolors.LinearSegmentedColormap.from_list("custom_red_white_green", colors, N=256)
     norm = mcolors.TwoSlopeNorm(vmin=-0.05, vcenter=0, vmax=0.05)
 
+    # ---------------------------
+    # FIGURE CREATION (SAFE)
+    # ---------------------------
     pitch = VerticalPitch(
         pitch_type="opta",
         pitch_color=PitchColor,
         line_color=PitchLineColor,
     )
+
     fig, ax = pitch.draw(figsize=(6, 9))
     fig.set_facecolor(BackgroundColor)
 
-    for _, row in playertest.iterrows():
-        bin_num = row["pitch_bin"]
-        xT_diff = row["xT_value_compared"]
+    # Use the close-after wrapper to guarantee cleanup
+    with close_after(fig):
+        for _, row in playertest.iterrows():
+            bin_num = row["pitch_bin"]
+            xT_diff = row["xT_value_compared"]
 
-        x_idx = (bin_num - 1) // y_bins
-        y_idx = (bin_num - 1) % y_bins
-        y_idx = (y_bins - 1) - y_idx
+            x_idx = (bin_num - 1) // y_bins
+            y_idx = (bin_num - 1) % y_bins
+            y_idx = (y_bins - 1) - y_idx
 
-        x_start = x_idx * (100 / x_bins)
-        y_start = y_idx * (100 / y_bins)
+            x_start = x_idx * (100 / x_bins)
+            y_start = y_idx * (100 / y_bins)
 
-        color = cmap(norm(xT_diff))
+            color = cmap(norm(xT_diff))
 
-        rect = plt.Rectangle(
-            (y_start, x_start),
-            (100 / y_bins),
-            (100 / x_bins),
-            facecolor=color,
-            edgecolor="none",
-            alpha=0.95,
+            rect = plt.Rectangle(
+                (y_start, x_start),
+                (100 / y_bins),
+                (100 / x_bins),
+                facecolor=color,
+                edgecolor="none",
+                alpha=0.95,
+            )
+            ax.add_patch(rect)
+
+        add_image(wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
+
+        ax.set_title(
+            f"{first_name} | Impact by Pitch Area as {position}",
+            fontsize=14,
+            pad=10,
+            color="white",
         )
-        ax.add_patch(rect)
-    
-    add_image(wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
 
-    ax.set_title(
-        f"{first_name} | Impact by Pitch Area as {position}",
-        fontsize=14,
-        pad=10,
-        color="white",
-    )
-
-    return fig
+        return fig  # Streamlit will render this before close_after() closes it
 
 def build_player_pizza(
     player_stats: pd.DataFrame,
@@ -1518,6 +1468,7 @@ def build_player_pizza(
         inner_circle_size=20,
     )
 
+    # Create the figure
     fig, ax = baker.make_pizza(
         values,
         figsize=(8, 8.5),
@@ -1538,47 +1489,40 @@ def build_player_pizza(
                 lw=1,
             ),
         ),
-        param_location=112.5,     # <-- ADD THIS LINE
+        param_location=112.5,
     )
 
-    # Title & subtitle
-    fig.text(
-        0.52, 0.975,
-        f"{playername} – {teamname} – Percentile Rank (0–100)",
-        ha="center", size=16, color="#000000"
-    )
+    # -------------------------------
+    # Memory-safe wrapper begins HERE
+    # -------------------------------
+    with close_after(fig):
 
-    fig.text(
-        0.52, 0.952,
-        f"Compared with other {position} in {competition_name} | {season_name}",
-        ha="center", size=13, color="#000000"
-    )
+        fig.text(
+            0.52, 0.975,
+            f"{playername} – {teamname} – Percentile Rank (0–100)",
+            ha="center", size=16, color="#000000"
+        )
 
-    # Credits
-    sample_size = len(position_data)
-    
-    fig.text(
-        0.05, 0.02,
-        f"Data: Opta | Metrics per 90 unless stated otherwise | "
-        f"{sample_size} players have played at least {minute_threshold} mins as a {position}",
-        size=9, color="#000000"
-    )
+        fig.text(
+            0.52, 0.952,
+            f"Compared with other {position} in {competition_name} | {season_name}",
+            ha="center", size=13, color="#000000"
+        )
 
-    # Category headings
-    #fig.patches.extend([
-    #    plt.Rectangle((0.31, 0.9225), 0.025, 0.021, color="red", transform=fig.transFigure),
-    #    plt.Rectangle((0.462, 0.9225), 0.025, 0.021, color="#63ace3", transform=fig.transFigure),
-    #    plt.Rectangle((0.632, 0.9225), 0.025, 0.021, color="#2f316a", transform=fig.transFigure),
-    #])
+        sample_size = len(position_data)
+        fig.text(
+            0.05, 0.02,
+            f"Data: Opta | Metrics per 90 unless stated otherwise | "
+            f"{sample_size} players have played at least {minute_threshold} mins as a {position}",
+            size=9, color="#000000"
+        )
 
-    # WTA Logo
-    add_image(wtaimaged, fig, left=0.465, bottom=0.44, width=0.095, height=0.108)
+        add_image(wtaimaged, fig, left=0.465, bottom=0.44, width=0.095, height=0.108)
 
-    # Team badge
-    if teamimage is not None:
-        add_image(teamimage, fig, left=0.05, bottom=0.05, width=0.20, height=0.125)
+        if teamimage is not None:
+            add_image(teamimage, fig, left=0.05, bottom=0.05, width=0.20, height=0.125)
 
-    return fig
+        return fig  # Still returned exactly the same way
 def create_player_actions_figure(
     attackingevents,
     defensiveevents,
