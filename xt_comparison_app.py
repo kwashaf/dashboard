@@ -3136,12 +3136,7 @@ def main():
 
             #return None
 
-#        extra_frames = []
-#        for lg in selected_extra_leagues:
-#            mapped = COMPARISON_MAP[lg]
-#            df_extra = load_league_file(mapped)
-#            if df_extra is not None:
-#                extra_frames.append(df_extra)
+
         @st.cache_data(max_entries=1, ttl=600)
         def load_league_file(mapped_name: str) -> pd.DataFrame | None:
             files = list_excel_files()
@@ -3174,6 +3169,12 @@ def main():
                         return None
         
             return None
+        extra_frames = []
+        for lg in selected_extra_leagues:
+            mapped = COMPARISON_MAP[lg]
+            df_extra = load_league_file(mapped)
+            if df_extra is not None:
+                extra_frames.append(df_extra)
         # --------------------------------------------
         # 3. Combine all datasets
         # --------------------------------------------
