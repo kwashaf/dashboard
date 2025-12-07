@@ -368,6 +368,7 @@ def create_pass_and_carry_sonar(
         edges = np.linspace(0, 360, bins + 1)
         counts, _ = np.histogram(angles, bins=edges)
         radii = (counts / counts.max() * max_radius) if counts.max() else np.zeros_like(counts)
+
         for i in range(bins):
             if radii[i] > 0:
                 wedge = Wedge(
@@ -393,8 +394,7 @@ def create_pass_and_carry_sonar(
             return
 
         df = data.copy()
-
-        # Correct for rectangular pitch distortion
+        # Correct for rectangular pitch distortion (your original logic)
         df['hx'] = df['end_y'] - df['y']
         df['vy'] = df['end_x'] - df['x']
         df['angle'] = (np.degrees(np.arctan2(df['vy'], df['hx'])) + 360) % 360
@@ -407,7 +407,7 @@ def create_pass_and_carry_sonar(
         for r in range(5):
             for c in range(5):
                 cell = df[(df['row'] == r) & (df['col'] == c)]
-                if len(cell) == 0:
+                if not len(cell):
                     continue
 
                 cx = (x_bins[r] + x_bins[r+1]) / 2
@@ -418,7 +418,7 @@ def create_pass_and_carry_sonar(
         ax.set_title(title, color=TextColor)
 
     # ---------------------------
-    # 2. BUILD FIGURE — NOW MEMORY-SAFE
+    # 2. BUILD FIGURE
     # ---------------------------
     pitch = VerticalPitch(
         pitch_type='opta',
@@ -427,13 +427,11 @@ def create_pass_and_carry_sonar(
         line_color=PitchLineColor
     )
 
-    # use safe_fig() wrapper
-    with safe_fig(figsize=(12, 9)) as (fig, _):
+    fig, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
+    fig.set_facecolor(BackgroundColor)
 
-        # important — use pitch.draw() but assign fig manually
-        _, axes = pitch.draw(nrows=1, ncols=2, figsize=(12, 9))
-        fig.set_facecolor(BackgroundColor)
-
+    # 🔒 Memory-safe wrapper: does NOT change the visual
+    with close_after(fig):
         sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
         sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
 
