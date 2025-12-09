@@ -70,7 +70,7 @@ COMP_MAP = {
     "Superleague":   "GRE1",
     "MLS":            "USA1",
     "J-League":        "JAP1",
-    "Eredivise":        "NED1",
+    "Eredivisie":        "NED1",
 }
 @st.cache_resource
 def load_team_badge(teamcode: str):
