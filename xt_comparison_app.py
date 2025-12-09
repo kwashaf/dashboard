@@ -70,6 +70,7 @@ COMP_MAP = {
     "Superleague":   "GRE1",
     "MLS":            "USA1",
     "J-League":        "JAP1",
+    "Eredivise":        "NED1",
 }
 @st.cache_resource
 def load_team_badge(teamcode: str):
@@ -1016,6 +1017,7 @@ COMPARISON_MAP = {
     "Superleague": "GRE1_2526",
     "MLS": "USA1_2025",
     "J-League": "JAP1_2025",
+    "Eredvisie": "NED1_2526",
 }
 
 @st.cache_data
