@@ -1546,6 +1546,19 @@ def create_player_actions_figure(
     from scipy.stats import gaussian_kde
     import numpy as np
 
+    # ---- SAFETY HELPER (required to prevent QHullError, does not change visuals) ----
+    def _can_hull(points):
+        """Check if ConvexHull can run safely on this point set."""
+        if len(points) < 3:
+            return False
+        uniq = np.unique(points, axis=0)
+        if len(uniq) < 3:
+            return False
+        # check that three points form area > epsilon (not collinear)
+        p1, p2, p3 = uniq[:3]
+        area = abs(np.cross(p2 - p1, p3 - p1))
+        return area > 1e-6
+
     # Create a figure with three subplots side by side
     fig, axes = plt.subplots(1, 3, figsize=(18, 8.25), facecolor=BackgroundColor)
     plt.subplots_adjust(wspace=.1)
@@ -1565,7 +1578,7 @@ def create_player_actions_figure(
         axes[2].set_title(f'{playername} - Pass Reception Locations as {position}', fontsize=10, color=TextColor)
     
         # ---------------------------------------------------------
-        # SHARED KDE GRID (IMPORTANT FIX)
+        # SHARED KDE GRID
         # ---------------------------------------------------------
         x_grid, y_grid = np.meshgrid(
             np.linspace(0, 100, 100),
@@ -1591,7 +1604,8 @@ def create_player_actions_figure(
                  (points_pass[:, 1] - max_density_y_pass) ** 2) < radius ** 2
             ]
     
-            if len(points_within_radius_pass) >= 3:
+            # ---- FIX APPLIED HERE ----
+            if _can_hull(points_within_radius_pass):
                 hull_pass = ConvexHull(points_within_radius_pass)
                 x_hull_pass = points_within_radius_pass[hull_pass.vertices, 0]
                 y_hull_pass = points_within_radius_pass[hull_pass.vertices, 1]
@@ -1628,7 +1642,8 @@ def create_player_actions_figure(
                  (points_def[:, 1] - max_density_y_def) ** 2) < radius ** 2
             ]
     
-            if len(points_within_radius_def) >= 3:
+            # ---- FIX APPLIED HERE ----
+            if _can_hull(points_within_radius_def):
                 hull_def = ConvexHull(points_within_radius_def)
                 x_hull_def = points_within_radius_def[hull_def.vertices, 0]
                 y_hull_def = points_within_radius_def[hull_def.vertices, 1]
@@ -1651,6 +1666,7 @@ def create_player_actions_figure(
         # ---------------------------------------------------------
         points_rec = np.array([(row['end_y'], row['end_x']) for _, row in playerrecpass.iterrows()])
         radius = 15
+
         if len(points_rec) > 3:
             kde_rec = gaussian_kde(points_rec.T)
             density_rec = kde_rec(np.vstack([x_grid.ravel(), y_grid.ravel()]))
@@ -1664,7 +1680,8 @@ def create_player_actions_figure(
                  (points_rec[:, 1] - max_density_y_rec) ** 2) < radius ** 2
             ]
     
-            if len(points_within_radius_rec) >= 3:
+            # ---- FIX APPLIED HERE ----
+            if _can_hull(points_within_radius_rec):
                 hull_rec = ConvexHull(points_within_radius_rec)
                 x_hull_rec = points_within_radius_rec[hull_rec.vertices, 0]
                 y_hull_rec = points_within_radius_rec[hull_rec.vertices, 1]
