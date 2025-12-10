@@ -1546,37 +1546,46 @@ def create_player_actions_figure(
     from scipy.stats import gaussian_kde
     import numpy as np
 
-    # ---- SAFETY HELPER (required to prevent QHullError, does not change visuals) ----
+    # ----------------------------------------------------------------------
+    # SAFE, FAST, WARNING-FREE HULL CHECK (fix to stop crash + warnings)
+    # ----------------------------------------------------------------------
     def _can_hull(points):
-        """Check if ConvexHull can run safely on this point set."""
+        """Check if we can safely compute a 2-D convex hull."""
         if len(points) < 3:
             return False
+
         uniq = np.unique(points, axis=0)
         if len(uniq) < 3:
             return False
-        # check that three points form area > epsilon (not collinear)
+
+        # Determinant area of triangle (no np.cross(), no NumPy 2.0 warnings)
         p1, p2, p3 = uniq[:3]
-        area = abs(np.cross(p2 - p1, p3 - p1))
+        area = abs(
+            (p2[0] - p1[0]) * (p3[1] - p1[1])
+            - (p2[1] - p1[1]) * (p3[0] - p1[0])
+        )
+
         return area > 1e-6
 
     # Create a figure with three subplots side by side
     fig, axes = plt.subplots(1, 3, figsize=(18, 8.25), facecolor=BackgroundColor)
     plt.subplots_adjust(wspace=.1)
+
     with close_after(fig):
-    # Define pitches
+
         pitch_arrows = VerticalPitch(pitch_type='opta', pitch_color=PitchColor, line_color=PitchLineColor)
         pitch_bins = VerticalPitch(pitch_type='opta', pitch_color=PitchColor, line_color=PitchLineColor)
-    
+
         # Draw pitches
         pitch_arrows.draw(ax=axes[0], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
         axes[0].set_title(f'{playername} - Attacking Event Locations as {position}', fontsize=10, color=TextColor)
-    
+
         pitch_bins.draw(ax=axes[1], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
         axes[1].set_title(f'{playername} - Defensive Event Locations as {position}', fontsize=10, color=TextColor)
-    
+
         pitch_bins.draw(ax=axes[2], figsize=(9, 8.25), constrained_layout=True, tight_layout=False)
         axes[2].set_title(f'{playername} - Pass Reception Locations as {position}', fontsize=10, color=TextColor)
-    
+
         # ---------------------------------------------------------
         # SHARED KDE GRID
         # ---------------------------------------------------------
@@ -1584,27 +1593,27 @@ def create_player_actions_figure(
             np.linspace(0, 100, 100),
             np.linspace(0, 100, 100)
         )
+
         # ---------------------------------------------------------
         # ATTACKING EVENTS (PITCH 1)
         # ---------------------------------------------------------
         points_pass = np.array([(row['y'], row['x']) for _, row in attackingevents.iterrows()])
-    
+
         if len(points_pass) > 3:
             kde_pass = gaussian_kde(points_pass.T)
-            x_grid, y_grid = np.meshgrid(np.linspace(0, 100, 100), np.linspace(0, 100, 100))
             density_pass = kde_pass(np.vstack([x_grid.ravel(), y_grid.ravel()]))
-    
+
             max_density_index_pass = np.argmax(density_pass)
             max_density_x_pass = x_grid.ravel()[max_density_index_pass]
             max_density_y_pass = y_grid.ravel()[max_density_index_pass]
-    
+
             radius = 15
             points_within_radius_pass = points_pass[
-                ((points_pass[:, 0] - max_density_x_pass) ** 2 +
-                 (points_pass[:, 1] - max_density_y_pass) ** 2) < radius ** 2
+                ((points_pass[:, 0] - max_density_x_pass)**2 +
+                 (points_pass[:, 1] - max_density_y_pass)**2) < radius**2
             ]
-    
-            # ---- FIX APPLIED HERE ----
+
+            # -------------------- FIX APPLIED HERE --------------------
             if _can_hull(points_within_radius_pass):
                 hull_pass = ConvexHull(points_within_radius_pass)
                 x_hull_pass = points_within_radius_pass[hull_pass.vertices, 0]
@@ -1617,32 +1626,34 @@ def create_player_actions_figure(
                     alpha=0.3
                 )
                 axes[0].add_patch(hull_patch_pass)
-    
+
         # Plot attacking events
         for _, row in attackingevents.iterrows():
-            axes[0].plot(row['y'], row['x'], marker='o', markerfacecolor='none',
-                         color=BackgroundColor, markersize=2)
-    
+            axes[0].plot(
+                row['y'], row['x'], marker='o', markerfacecolor='none',
+                color=BackgroundColor, markersize=2
+            )
+
         # ---------------------------------------------------------
         # DEFENSIVE EVENTS (PITCH 2)
         # ---------------------------------------------------------
         points_def = np.array([(row['y'], row['x']) for _, row in defensiveevents.iterrows()])
-    
+
         if len(points_def) > 3:
             kde_def = gaussian_kde(points_def.T)
             density_def = kde_def(np.vstack([x_grid.ravel(), y_grid.ravel()]))
-    
+
             max_density_idx_def = np.argmax(density_def)
             max_density_x_def = x_grid.ravel()[max_density_idx_def]
             max_density_y_def = y_grid.ravel()[max_density_idx_def]
+
             radius = 15
-    
             points_within_radius_def = points_def[
-                ((points_def[:, 0] - max_density_x_def) ** 2 +
-                 (points_def[:, 1] - max_density_y_def) ** 2) < radius ** 2
+                ((points_def[:, 0] - max_density_x_def)**2 +
+                 (points_def[:, 1] - max_density_y_def)**2) < radius**2
             ]
-    
-            # ---- FIX APPLIED HERE ----
+
+            # -------------------- FIX APPLIED HERE --------------------
             if _can_hull(points_within_radius_def):
                 hull_def = ConvexHull(points_within_radius_def)
                 x_hull_def = points_within_radius_def[hull_def.vertices, 0]
@@ -1655,12 +1666,14 @@ def create_player_actions_figure(
                     alpha=0.3
                 )
                 axes[1].add_patch(hull_patch_def)
-    
+
         # Plot defensive events
         for _, row in defensiveevents.iterrows():
-            axes[1].plot(row['y'], row['x'], marker='o', markerfacecolor='none',
-                         color=BackgroundColor, markersize=2)
-    
+            axes[1].plot(
+                row['y'], row['x'], marker='o', markerfacecolor='none',
+                color=BackgroundColor, markersize=2
+            )
+
         # ---------------------------------------------------------
         # PASS RECEPTIONS (PITCH 3)
         # ---------------------------------------------------------
@@ -1670,17 +1683,17 @@ def create_player_actions_figure(
         if len(points_rec) > 3:
             kde_rec = gaussian_kde(points_rec.T)
             density_rec = kde_rec(np.vstack([x_grid.ravel(), y_grid.ravel()]))
-    
+
             max_density_idx_rec = np.argmax(density_rec)
             max_density_x_rec = x_grid.ravel()[max_density_idx_rec]
             max_density_y_rec = y_grid.ravel()[max_density_idx_rec]
-    
+
             points_within_radius_rec = points_rec[
-                ((points_rec[:, 0] - max_density_x_rec) ** 2 +
-                 (points_rec[:, 1] - max_density_y_rec) ** 2) < radius ** 2
+                ((points_rec[:, 0] - max_density_x_rec)**2 +
+                 (points_rec[:, 1] - max_density_y_rec)**2) < radius**2
             ]
-    
-            # ---- FIX APPLIED HERE ----
+
+            # -------------------- FIX APPLIED HERE --------------------
             if _can_hull(points_within_radius_rec):
                 hull_rec = ConvexHull(points_within_radius_rec)
                 x_hull_rec = points_within_radius_rec[hull_rec.vertices, 0]
@@ -1693,22 +1706,24 @@ def create_player_actions_figure(
                     alpha=0.3
                 )
                 axes[2].add_patch(hull_patch_rec)
-    
-        # Plot pass receptions
+
+        # Plot receptions
         for _, row in playerrecpass.iterrows():
-            axes[2].plot(row['end_y'], row['end_x'], marker='o', markerfacecolor='none',
-                         color=BackgroundColor, markersize=2)
-    
+            axes[2].plot(
+                row['end_y'], row['end_x'], marker='o', markerfacecolor='none',
+                color=BackgroundColor, markersize=2
+            )
+
         # ---------------------------------------------------------
         # TEXT LABELS
         # ---------------------------------------------------------
         axes[0].text(50, -5, 'Dots show locations of events', ha='center', fontsize=9, color=TextColor)
-    
+
         axes[0].text(50, -13, f'{playername} - {teamname}', ha='center', fontsize=12, color=TextColor, fontweight='bold')
         axes[0].text(50, -20, f'{competition_name} | {season_name}', ha='center', fontsize=12, color=TextColor, fontweight='bold')
-    
+
         axes[1].text(50, -5, 'Data from Opta', ha='center', fontsize=9, color=TextColor)
-    
+
         axes[2].text(50, -5, 'Shaded area shows most frequent area for action', ha='center', fontsize=9, color=TextColor)
         axes[2].text(50, -10, 'Attacking Events are shots, dribbles, shot assists & aerial duels',
                      ha='center', fontsize=9, color=TextColor)
@@ -1720,13 +1735,13 @@ def create_player_actions_figure(
                      ha='center', fontsize=9, color=TextColor)
         axes[2].text(50, -26, 'from team-mate',
                      ha='center', fontsize=9, color=TextColor)
-    
+
         # ---------------------------------------------------------
         # LOGOS
         # ---------------------------------------------------------
         add_image(teamimage, fig, left=0.56, bottom=-0.05, width=0.06, alpha=1)
         add_image(wtaimaged, fig, left=0.4, bottom=-0.04075, width=0.08, alpha=1)
-    
+        plt.close(fig)
         return fig
 def create_creative_actions_figure(
     progdata,
