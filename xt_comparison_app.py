@@ -226,6 +226,7 @@ SCATTER_METRIC_MAP = {
     "shot_conversion": "Shot Conversion %",
     "shot_quality": "Shot Quality %",
     "box_touches_per_shot": "Touches in Box per Shot",
+    "xG_per_shot": "xG Per Shot",
 }
 
 # ---------------------------------------------------------
