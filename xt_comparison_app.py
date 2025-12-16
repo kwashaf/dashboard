@@ -1302,7 +1302,7 @@ def build_player_pizza(
             "pass_completion", "pass_completion_final_third", "%_passes_are_progressive",
             "prog_carries_per_90",
             "total_threat_created_per_90",
-            "successful_defensive_actions_per_90", "defensive_actions_per_90",
+            "successful_defensive_actions_per_90", "tackle_win_rate",
             "interceptions_per_90", "blocked_shots_per_90",
             "total_threat_prevented_per_90",
             "threat_value_per_90",
@@ -1423,7 +1423,7 @@ def build_player_pizza(
             "Pass Completion \n%", "Final 3rd \nPass Completion \n%", "% Passes are \nProgressive",
             "Progressive \n Carries",
             "Threat Created",
-            "Defensive Actions", "Successful \nDefensive Actions",
+            "Successful \nDefensive Actions", "Tackle %",
             "Interceptions", "Shots Blocked", "Threat Prevented",
             "Player Impact",
         ]
