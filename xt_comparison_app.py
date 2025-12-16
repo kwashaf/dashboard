@@ -1434,7 +1434,7 @@ def build_player_pizza(
             "Pass Completion \n%", "Progressive \nPasses", "% Passes are \nProgressive",
             "Passing Yards", "Passing Threat",
             "Clearances", "Interceptions", "Tackle \n%",
-            "Aerial \n%", "Threat Prevented",
+            "Defensive \nAerial %", "Threat Prevented",
             "Player Impact",
         ]
     else:   # CF / LW / RW / AM
