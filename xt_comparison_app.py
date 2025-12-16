@@ -1297,8 +1297,8 @@ def build_player_pizza(
 
     elif position in ['LB', 'LWB', 'RB', 'RWB']:
         cols = [
-            "keyPasses_per_90", "xA_per_90", "assists_per_90",
-            "xG_per_90", "successful_attacking_actions_per_90",
+            "xA_per_90", "assists_per_90",
+            "xG_per_90", "goals_per_90", "successful_attacking_actions_per_90",
             "pass_completion", "pass_completion_final_third", "%_passes_are_progressive",
             "prog_carries_per_90",
             "total_threat_created_per_90",
@@ -1418,8 +1418,8 @@ def build_player_pizza(
         ]
     elif position in ['LB', 'LWB', 'RB', 'RWB']:
         params = [
-            "Shot Assists", "xA", "Assists",
-            "xG", "Successful \nAttacking Actions",
+            "xA", "Assists",
+            "xG", "Goals", "Successful \nAttacking Actions",
             "Pass Completion \n%", "Final 3rd \nPass Completion \n%", "% Passes are \nProgressive",
             "Progressive \n Carries",
             "Threat Created",
