@@ -71,7 +71,7 @@ COMP_MAP = {
     "MLS":            "USA1",
     "J-League":        "JAP1",
     "Eredivisie":        "NED1",
-    "A-League":,        "AUS1",
+    "A-League":        "AUS1",
     "Saudi Pro League":,    "SAU1",
 }
 @st.cache_resource
