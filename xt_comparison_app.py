@@ -72,6 +72,7 @@ COMP_MAP = {
     "J-League":        "JAP1",
     "Eredivisie":        "NED1",
     "A-League":,        "AUS1",
+    "Saudi Pro League":,    "SAU1",
 }
 @st.cache_resource
 def load_team_badge(teamcode: str):
@@ -1021,6 +1022,7 @@ COMPARISON_MAP = {
     "J-League": "JAP1_2025",
     "Eredivisie": "NED1_2526",
     "A-League": "AUS1_2526",
+    "Saudi Pro League": "SAU1_2526",
 }
 
 @st.cache_data
