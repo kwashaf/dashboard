@@ -436,14 +436,12 @@ def create_pass_and_carry_sonar(
     fig.set_facecolor(BackgroundColor)
 
     # 🔒 Memory-safe wrapper: does NOT change the visual
-    with close_after(fig):
-        sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
-        sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
-
-        add_image(wtaimaged, fig, left=0.203, bottom=0.4535, width=0.1, alpha=0.25)
-        add_image(wtaimaged, fig, left=0.6975, bottom=0.4535, width=0.1, alpha=0.25)
-
-        return fig
+    sonar(axes[0], passingdata, f"{playername} - Passing Sonars as {position}")
+    sonar(axes[1], carryingdata, f"{playername} - Carrying Sonars as {position}")
+    
+    add_image(wtaimaged, fig, left=0.203, bottom=0.4535, width=0.1, alpha=0.25)
+    add_image(wtaimaged, fig, left=0.6975, bottom=0.4535, width=0.1, alpha=0.25)
+    return fig
 
 def determine_def_zone(row):
     """
@@ -1192,40 +1190,40 @@ def plot_xt_comparison_for_player(
     fig.set_facecolor(BackgroundColor)
 
     # Use the close-after wrapper to guarantee cleanup
-    with close_after(fig):
-        for _, row in playertest.iterrows():
-            bin_num = row["pitch_bin"]
-            xT_diff = row["xT_value_compared"]
+    
+    for _, row in playertest.iterrows():
+        bin_num = row["pitch_bin"]
+        xT_diff = row["xT_value_compared"]
 
-            x_idx = (bin_num - 1) // y_bins
-            y_idx = (bin_num - 1) % y_bins
-            y_idx = (y_bins - 1) - y_idx
+        x_idx = (bin_num - 1) // y_bins
+        y_idx = (bin_num - 1) % y_bins
+        y_idx = (y_bins - 1) - y_idx
 
-            x_start = x_idx * (100 / x_bins)
-            y_start = y_idx * (100 / y_bins)
+        x_start = x_idx * (100 / x_bins)
+        y_start = y_idx * (100 / y_bins)
 
-            color = cmap(norm(xT_diff))
+        color = cmap(norm(xT_diff))
 
-            rect = plt.Rectangle(
-                (y_start, x_start),
-                (100 / y_bins),
-                (100 / x_bins),
-                facecolor=color,
-                edgecolor="none",
-                alpha=0.95,
-            )
-            ax.add_patch(rect)
-
-        add_image(wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
-
-        ax.set_title(
-            f"{first_name} | Impact by Pitch Area as {position}",
-            fontsize=14,
-            pad=10,
-            color="white",
+        rect = plt.Rectangle(
+            (y_start, x_start),
+            (100 / y_bins),
+            (100 / x_bins),
+            facecolor=color,
+            edgecolor="none",
+            alpha=0.95,
         )
+        ax.add_patch(rect)
 
-        return fig  # Streamlit will render this before close_after() closes it
+    add_image(wtaimaged, fig, left=0.4025, bottom=0.43925, width=0.2, alpha=0.25)
+
+    ax.set_title(
+    f"{first_name} | Impact by Pitch Area as {position}",
+    fontsize=14,
+    pad=10,
+    color="white",
+    )
+
+    return fig  # Streamlit will render this before close_after() closes it
 
 def build_player_pizza(
     player_stats: pd.DataFrame,
@@ -1502,34 +1500,33 @@ def build_player_pizza(
     # -------------------------------
     # Memory-safe wrapper begins HERE
     # -------------------------------
-    with close_after(fig):
+    
+    fig.text(
+        0.52, 0.975,
+        f"{playername} – {teamname} – Percentile Rank (0–100)",
+        ha="center", size=16, color="#000000"
+    )
 
-        fig.text(
-            0.52, 0.975,
-            f"{playername} – {teamname} – Percentile Rank (0–100)",
-            ha="center", size=16, color="#000000"
-        )
+    fig.text(
+        0.52, 0.952,
+        f"Compared with other {position} in {competition_name} | {season_name}",
+        ha="center", size=13, color="#000000"
+    )
 
-        fig.text(
-            0.52, 0.952,
-            f"Compared with other {position} in {competition_name} | {season_name}",
-            ha="center", size=13, color="#000000"
-        )
+    sample_size = len(position_data)
+    fig.text(
+        0.05, 0.02,
+        f"Data: Opta | Metrics per 90 unless stated otherwise | "
+        f"{sample_size} players have played at least {minute_threshold} mins as a {position}",
+        size=9, color="#000000"
+    )
 
-        sample_size = len(position_data)
-        fig.text(
-            0.05, 0.02,
-            f"Data: Opta | Metrics per 90 unless stated otherwise | "
-            f"{sample_size} players have played at least {minute_threshold} mins as a {position}",
-            size=9, color="#000000"
-        )
+    add_image(wtaimaged, fig, left=0.465, bottom=0.44, width=0.095, height=0.108)
 
-        add_image(wtaimaged, fig, left=0.465, bottom=0.44, width=0.095, height=0.108)
+    if teamimage is not None:
+        add_image(teamimage, fig, left=0.05, bottom=0.05, width=0.20, height=0.125)
 
-        if teamimage is not None:
-            add_image(teamimage, fig, left=0.05, bottom=0.05, width=0.20, height=0.125)
-
-        return fig  # Still returned exactly the same way
+    return fig  # Still returned exactly the same way
 def create_player_actions_figure(
     attackingevents,
     defensiveevents,
@@ -3047,7 +3044,8 @@ def main():
             # ------------------------------------------------------------
             # Display chart
             # ------------------------------------------------------------
-            st.plotly_chart(fig, use_container_width=False)
+            st.plotly_chart(fig, width="content")
+
     
         else:
             st.info("Please select exactly two metrics.")
@@ -3451,7 +3449,8 @@ def main():
                 layer="above",
             )
         )        
-        st.plotly_chart(fig, use_container_width=False)  
+        st.plotly_chart(fig, width="content")
+  
 
         st.info(
             "Similarity is based only on this player's strongest & weakest metrics, coupled with "
