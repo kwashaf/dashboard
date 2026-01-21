@@ -1046,7 +1046,7 @@ def list_excel_files():
 #    except Exception as e:
 #        st.error(f"Error reading match file")
 #        return pd.DataFrame()
-@st.cache_data(max_entries=1, ttl=600)
+@st.cache_data(max_entries=1, ttl=300)
 def load_match_data(parquet_filename: str):
     url = build_raw_url(parquet_filename)
 
@@ -1070,7 +1070,7 @@ def load_match_data(parquet_filename: str):
 #        st.error(f"Error reading player file")
 #        return pd.DataFrame()
 
-@st.cache_data(max_entries=1, ttl=600)
+@st.cache_data(max_entries=1, ttl=300)
 def load_minute_log(excel_filename: str):
     url = build_raw_url(excel_filename)
 
@@ -3171,7 +3171,7 @@ def main():
             #return None
 
 
-        @st.cache_data(max_entries=1, ttl=600)
+        @st.cache_data(max_entries=1, ttl=300)
         def load_league_file(mapped_name: str) -> pd.DataFrame | None:
             files = list_excel_files()
         
