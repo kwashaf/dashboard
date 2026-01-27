@@ -1907,7 +1907,7 @@ def create_creative_actions_figure(
 def main():
     st.title("WT Analysis - Player Data Dashboard")
     st.subheader("Select League, Player & Position on the Left - Contact @WT_Analysis on X for more info")
-    st.subheader("Data last updated 18/01/2026")
+    st.subheader("Data last updated 27/01/2026")
 
     st.sidebar.header("League Selection")
 
